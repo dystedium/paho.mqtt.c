@@ -464,7 +464,7 @@ int SSLSocket_initialize(void)
 
 		lockMemSize = CRYPTO_num_locks() * sizeof(ssl_mutex_type);
 
-		sslLocks = malloc(lockMemSize);
+		sslLocks = paho_malloc_t(lockMemSize);
 		if (!sslLocks)
 		{
 			rc = -1;
@@ -513,7 +513,7 @@ void SSLSocket_terminate(void)
 			{
 				SSL_destroy_mutex(&sslLocks[i]);
 			}
-			free(sslLocks);
+			paho_free_t(sslLocks);
 		}
 	}
 
@@ -740,7 +740,7 @@ int SSLSocket_setSocketForSSL(networkHandles* net, MQTTClient_SSLOptions* opts,
 			else
 				SSLSocket_error("SSL_set_fd", net->ssl, net->socket, rc, NULL, NULL);
 		}
-		hostname_plus_null = malloc(hostname_len + 1u );
+		hostname_plus_null = paho_malloc_t(hostname_len + 1u );
 		if (hostname_plus_null)
 		{
 			MQTTStrncpy(hostname_plus_null, hostname, hostname_len + 1u);
@@ -750,7 +750,7 @@ int SSLSocket_setSocketForSSL(networkHandles* net, MQTTClient_SSLOptions* opts,
 				else
 					SSLSocket_error("SSL_set_tlsext_host_name", NULL, net->socket, rc, NULL, NULL);
 			}
-			free(hostname_plus_null);
+			paho_free_t(hostname_plus_null);
 		}
 		else
 			rc = PAHO_MEMORY_ERROR;
@@ -803,7 +803,7 @@ int SSLSocket_connect(SSL* ssl, SOCKET sock, const char* hostname, int verify, i
 		/* 0 == fail, -1 == SSL internal error, -2 == malformed input */
 		if (rc == 0 || rc == -1 || rc == -2)
 		{
-			char* ip_addr = malloc(hostname_len + 1);
+			char* ip_addr = paho_malloc_t(hostname_len + 1);
 			/* cannot use = strndup(hostname, hostname_len); here because of custom Heap */
 			if (ip_addr)
 			{
@@ -813,7 +813,7 @@ int SSLSocket_connect(SSL* ssl, SOCKET sock, const char* hostname, int verify, i
 				rc = X509_check_ip_asc(cert, ip_addr, 0);
 				Log(TRACE_MIN, -1, "rc from X509_check_ip_asc is %d", rc);
 
-				free(ip_addr);
+				paho_free_t(ip_addr);
 			}
 
 			if (rc == 0 || rc == -1 || rc == -2)
@@ -978,7 +978,7 @@ int SSLSocket_putdatas(SSL* ssl, SOCKET socket, char* buf0, size_t buf0len, Pack
 	for (i = 0; i < bufs.count; i++)
 		iovec.iov_len += (ULONG)bufs.buflens[i];
 
-	ptr = iovec.iov_base = (char *)malloc(iovec.iov_len);
+	ptr = iovec.iov_base = (char *)paho_malloc_t(iovec.iov_len);
 	if (!ptr)
 	{
 		rc = PAHO_MEMORY_ERROR;
@@ -1005,7 +1005,7 @@ int SSLSocket_putdatas(SSL* ssl, SOCKET socket, char* buf0, size_t buf0len, Pack
 
 		if (sslerror == SSL_ERROR_WANT_WRITE)
 		{
-			SOCKET* sockmem = (SOCKET*)malloc(sizeof(SOCKET));
+			SOCKET* sockmem = (SOCKET*)paho_malloc_t(sizeof(SOCKET));
 			int free = 1;
 
 			if (!sockmem)
@@ -1030,16 +1030,16 @@ int SSLSocket_putdatas(SSL* ssl, SOCKET socket, char* buf0, size_t buf0len, Pack
 	SSL_unlock_mutex(&sslCoreMutex);
 
 	if (rc != TCPSOCKET_INTERRUPTED)
-		free(iovec.iov_base);
+		paho_free_t(iovec.iov_base);
 	else
 	{
 		int i;
-		free(buf0);
+		paho_free_t(buf0);
 		for (i = 0; i < bufs.count; ++i)
 		{
 		    if (bufs.frees[i])
 		    {
-		    	free(bufs.buffers[i]);
+		    	paho_free_t(bufs.buffers[i]);
 		    	bufs.buffers[i] = NULL;
 		    }
 		}	
@@ -1055,7 +1055,7 @@ void SSLSocket_addPendingRead(SOCKET sock)
 	FUNC_ENTRY;
 	if (ListFindItem(&pending_reads, &sock, intcompare) == NULL) /* make sure we don't add the same socket twice */
 	{
-		SOCKET* psock = (SOCKET*)malloc(sizeof(SOCKET));
+		SOCKET* psock = (SOCKET*)paho_malloc_t(sizeof(SOCKET));
 		if (psock)
 		{
 			*psock = sock;
@@ -1091,7 +1091,7 @@ int SSLSocket_continueWrite(pending_writes* pw)
 	if ((rc = SSL_write(pw->ssl, pw->iovecs[0].iov_base, pw->iovecs[0].iov_len)) == pw->iovecs[0].iov_len)
 	{
 		/* topic and payload buffers are freed elsewhere, when all references to them have been removed */
-		free(pw->iovecs[0].iov_base);
+		paho_free_t(pw->iovecs[0].iov_base);
 		Log(TRACE_MIN, -1, "SSL continueWrite: partial write now complete for socket %d", pw->socket);
 		rc = 1;
 	}
@@ -1111,7 +1111,7 @@ int SSLSocket_abortWrite(pending_writes* pw)
 	int rc = 0;
 
 	FUNC_ENTRY;
-	free(pw->iovecs[0].iov_base);
+	paho_free_t(pw->iovecs[0].iov_base);
 	FUNC_EXIT_RC(rc);
 	return rc;
 }

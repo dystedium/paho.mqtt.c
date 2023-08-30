@@ -449,7 +449,7 @@ int MQTTClient_createWithOptions(MQTTClient* handle, const char* serverURI, cons
 		library_initialized = 1;
 	}
 
-	if ((m = malloc(sizeof(MQTTClients))) == NULL)
+	if ((m = paho_malloc_t(sizeof(MQTTClients))) == NULL)
 	{
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;
@@ -500,7 +500,7 @@ int MQTTClient_createWithOptions(MQTTClient* handle, const char* serverURI, cons
 	m->serverURI = MQTTStrdup(serverURI);
 	ListAppend(handles, m, sizeof(MQTTClients));
 
-	if ((m->c = malloc(sizeof(Clients))) == NULL)
+	if ((m->c = paho_malloc_t(sizeof(Clients))) == NULL)
 	{
 		ListRemove(handles, m);
 		rc = PAHO_MEMORY_ERROR;
@@ -576,10 +576,10 @@ static void MQTTClient_emptyMessageQueue(Clients* client)
 		while (ListNextElement(client->messageQueue, &current))
 		{
 			qEntry* qe = (qEntry*)(current->content);
-			free(qe->topicName);
+			paho_free_t(qe->topicName);
 			MQTTProperties_free(&qe->msg->properties);
-			free(qe->msg->payload);
-			free(qe->msg);
+			paho_free_t(qe->msg->payload);
+			paho_free_t(qe->msg);
 		}
 		ListEmpty(client->messageQueue);
 	}
@@ -611,10 +611,10 @@ void MQTTClient_destroy(MQTTClient* handle)
 			Log(LOG_ERROR, 0, NULL);
 		else
 			Log(TRACE_MIN, 1, NULL, saved_clientid, saved_socket);
-		free(saved_clientid);
+		paho_free_t(saved_clientid);
 	}
 	if (m->serverURI)
-		free(m->serverURI);
+		paho_free_t(m->serverURI);
 	Thread_destroy_sem(m->connect_sem);
 	Thread_destroy_sem(m->connack_sem);
 	Thread_destroy_sem(m->suback_sem);
@@ -636,8 +636,8 @@ void MQTTClient_freeMessage(MQTTClient_message** message)
 {
 	FUNC_ENTRY;
 	MQTTProperties_free(&(*message)->properties);
-	free((*message)->payload);
-	free(*message);
+	paho_free_t((*message)->payload);
+	paho_free_t(*message);
 	*message = NULL;
 	FUNC_EXIT;
 }
@@ -646,7 +646,7 @@ void MQTTClient_freeMessage(MQTTClient_message** message)
 void MQTTClient_free(void* memory)
 {
 	FUNC_ENTRY;
-	free(memory);
+	paho_free_t(memory);
 	FUNC_EXIT;
 }
 
@@ -655,11 +655,11 @@ void MQTTResponse_free(MQTTResponse response)
 {
 	FUNC_ENTRY;
 	if (response.reasonCodeCount > 0 && response.reasonCodes)
-		free(response.reasonCodes);
+		paho_free_t(response.reasonCodes);
 	if (response.properties)
 	{
 		MQTTProperties_free(response.properties);
-		free(response.properties);
+		paho_free_t(response.properties);
 	}
 	FUNC_EXIT;
 }
@@ -751,8 +751,8 @@ static thread_return_type WINAPI call_disconnected(void* context)
 
 	(*(pr->m->disconnected))(pr->m->disconnected_context, pr->properties, pr->reasonCode);
 	MQTTProperties_free(pr->properties);
-	free(pr->properties);
-	free(pr);
+	paho_free_t(pr->properties);
+	paho_free_t(pr);
 	return 0;
 }
 
@@ -814,8 +814,8 @@ static thread_return_type WINAPI call_auth_handle(void* context)
 
 	(*(pr->m->auth_handle))(pr->m->auth_handle_context, pr->properties, pr->reasonCode);
 	MQTTProperties_free(pr->properties);
-	free(pr->properties);
-	free(pr);
+	paho_free_t(pr->properties);
+	paho_free_t(pr);
 	return 0;
 }
 #endif
@@ -936,12 +936,12 @@ static thread_return_type WINAPI MQTTClient_run(void* n)
 						struct props_rc_parms* dp;
 						Ack* disc = (Ack*)pack;
 
-						dp = malloc(sizeof(struct props_rc_parms));
+						dp = paho_malloc_t(sizeof(struct props_rc_parms));
 						if (dp)
 						{
 							dp->m = m;
 							dp->reasonCode = disc->rc;
-							dp->properties = malloc(sizeof(MQTTProperties));
+							dp->properties = paho_malloc_t(sizeof(MQTTProperties));
 							if (dp->properties)
 							{
 								*(dp->properties) = disc->properties;
@@ -950,9 +950,9 @@ static thread_return_type WINAPI MQTTClient_run(void* n)
 								Thread_start(call_disconnected, dp);
 							}
 							else
-								free(dp);
+								paho_free_t(dp);
 						}
-						free(disc);
+						paho_free_t(disc);
 					}
 #if 0
 					if (pack->header.bits.type == AUTH && m->auth_handle)
@@ -963,7 +963,7 @@ static thread_return_type WINAPI MQTTClient_run(void* n)
 						dp.m = m;
 						dp.properties = &disc->properties;
 						dp.reasonCode = disc->rc;
-						free(pack);
+						paho_free_t(pack);
 						Log(TRACE_MIN, -1, "Calling auth_handle for client %s", m->c->clientID);
 						Thread_start(call_auth_handle, &dp);
 					}
@@ -1149,13 +1149,13 @@ void Protocol_processPublication(Publish* publish, Clients* client, int allocate
 	MQTTClient_message initialized = MQTTClient_message_initializer;
 
 	FUNC_ENTRY;
-	qe = malloc(sizeof(qEntry));
+	qe = paho_malloc_t(sizeof(qEntry));
 	if (!qe)
 		goto exit;
-	mm = malloc(sizeof(MQTTClient_message));
+	mm = paho_malloc_t(sizeof(MQTTClient_message));
 	if (!mm)
 	{
-		free(qe);
+		paho_free_t(qe);
 		goto exit;
 	}
 	memcpy(mm, &initialized, sizeof(MQTTClient_message));
@@ -1166,11 +1166,11 @@ void Protocol_processPublication(Publish* publish, Clients* client, int allocate
 	publish->topic = NULL;
 	if (allocatePayload)
 	{
-		mm->payload = malloc(publish->payloadlen);
+		mm->payload = paho_malloc_t(publish->payloadlen);
 		if (mm->payload == NULL)
 		{
-			free(mm);
-			free(qe);
+			paho_free_t(mm);
+			paho_free_t(qe);
 			goto exit;
 		}
 		memcpy(mm->payload, publish->payload, publish->payloadlen);
@@ -1449,7 +1449,7 @@ static MQTTResponse MQTTClient_connectURIVersion(MQTTClient handle, MQTTClient_c
 				}
 				if (m->c->MQTTVersion == MQTTVERSION_5)
 				{
-					if ((resp.properties = malloc(sizeof(MQTTProperties))) == NULL)
+					if ((resp.properties = paho_malloc_t(sizeof(MQTTProperties))) == NULL)
 					{
 						rc = PAHO_MEMORY_ERROR;
 						goto exit;
@@ -1538,9 +1538,9 @@ static MQTTResponse MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectO
 
 	if (m->c->will)
 	{
-		free(m->c->will->payload);
-		free(m->c->will->topic);
-		free(m->c->will);
+		paho_free_t(m->c->will->payload);
+		paho_free_t(m->c->will->topic);
+		paho_free_t(m->c->will);
 		m->c->will = NULL;
 	}
 
@@ -1548,7 +1548,7 @@ static MQTTResponse MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectO
 	{
 		const void* source = NULL;
 
-		if ((m->c->will = malloc(sizeof(willMessages))) == NULL)
+		if ((m->c->will = paho_malloc_t(sizeof(willMessages))) == NULL)
 		{
 			rc.reasonCode = PAHO_MEMORY_ERROR;
 			goto exit;
@@ -1565,9 +1565,9 @@ static MQTTResponse MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectO
 				m->c->will->payloadlen = (int)strlen(options->will->message);
 				source = (void*)options->will->message;
 			}
-			if ((m->c->will->payload = malloc(m->c->will->payloadlen)) == NULL)
+			if ((m->c->will->payload = paho_malloc_t(m->c->will->payloadlen)) == NULL)
 			{
-				free(m->c->will);
+				paho_free_t(m->c->will);
 				rc.reasonCode = PAHO_MEMORY_ERROR;
 				goto exit;
 			}
@@ -1587,27 +1587,27 @@ static MQTTResponse MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectO
 	if (m->c->sslopts)
 	{
 		if (m->c->sslopts->trustStore)
-			free((void*)m->c->sslopts->trustStore);
+			paho_free_t((void*)m->c->sslopts->trustStore);
 		if (m->c->sslopts->keyStore)
-			free((void*)m->c->sslopts->keyStore);
+			paho_free_t((void*)m->c->sslopts->keyStore);
 		if (m->c->sslopts->privateKey)
-			free((void*)m->c->sslopts->privateKey);
+			paho_free_t((void*)m->c->sslopts->privateKey);
 		if (m->c->sslopts->privateKeyPassword)
-			free((void*)m->c->sslopts->privateKeyPassword);
+			paho_free_t((void*)m->c->sslopts->privateKeyPassword);
 		if (m->c->sslopts->enabledCipherSuites)
-			free((void*)m->c->sslopts->enabledCipherSuites);
+			paho_free_t((void*)m->c->sslopts->enabledCipherSuites);
 		if (m->c->sslopts->struct_version >= 2)
 		{
 			if (m->c->sslopts->CApath)
-				free((void*)m->c->sslopts->CApath);
+				paho_free_t((void*)m->c->sslopts->CApath);
 		}
-		free(m->c->sslopts);
+		paho_free_t(m->c->sslopts);
 		m->c->sslopts = NULL;
 	}
 
 	if (options->struct_version != 0 && options->ssl)
 	{
-		if ((m->c->sslopts = malloc(sizeof(MQTTClient_SSLOptions))) == NULL)
+		if ((m->c->sslopts = paho_malloc_t(sizeof(MQTTClient_SSLOptions))) == NULL)
 		{
 			rc.reasonCode = PAHO_MEMORY_ERROR;
 			goto exit;
@@ -1654,14 +1654,14 @@ static MQTTResponse MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectO
 
 	if (m->c->username)
 	{
-		free((void*)m->c->username);
+		paho_free_t((void*)m->c->username);
 		m->c->username = NULL;
 	}
 	if (options->username)
 		m->c->username = MQTTStrdup(options->username);
 	if (m->c->password)
 	{
-		free((void*)m->c->password);
+		paho_free_t((void*)m->c->password);
 		m->c->password = NULL;
 	}
 	if (options->password)
@@ -1672,7 +1672,7 @@ static MQTTResponse MQTTClient_connectURI(MQTTClient handle, MQTTClient_connectO
 	else if (options->struct_version >= 5 && options->binarypwd.data)
 	{
 		m->c->passwordlen = options->binarypwd.len;
-		if ((m->c->password = malloc(m->c->passwordlen)) == NULL)
+		if ((m->c->password = paho_malloc_t(m->c->passwordlen)) == NULL)
 		{
 			rc.reasonCode = PAHO_MEMORY_ERROR;
 			goto exit;
@@ -1900,10 +1900,10 @@ exit:
 	if (m && m->c && m->c->will)
 	{
 		if (m->c->will->payload)
-			free(m->c->will->payload);
+			paho_free_t(m->c->will->payload);
 		if (m->c->will->topic)
-			free(m->c->will->topic);
-		free(m->c->will);
+			paho_free_t(m->c->will->topic);
+		paho_free_t(m->c->will);
 		m->c->will = NULL;
 	}
 	Thread_unlock_mutex(mqttclient_mutex);
@@ -2094,7 +2094,7 @@ MQTTResponse MQTTClient_subscribeMany5(MQTTClient handle, int count, char* const
 			{
 				if (sub->properties.count > 0)
 				{
-					if ((resp.properties = malloc(sizeof(MQTTProperties))) == NULL)
+					if ((resp.properties = paho_malloc_t(sizeof(MQTTProperties))) == NULL)
 					{
 						rc = PAHO_MEMORY_ERROR;
 						goto exit;
@@ -2108,7 +2108,7 @@ MQTTResponse MQTTClient_subscribeMany5(MQTTClient handle, int count, char* const
 					ListElement* current = NULL;
 					int rc_count = 0;
 
-					if ((resp.reasonCodes = malloc(sizeof(enum MQTTReasonCodes) * (sub->qoss->count))) == NULL)
+					if ((resp.reasonCodes = paho_malloc_t(sizeof(enum MQTTReasonCodes) * (sub->qoss->count))) == NULL)
 					{
 						rc = PAHO_MEMORY_ERROR;
 						goto exit;
@@ -2260,7 +2260,7 @@ MQTTResponse MQTTClient_unsubscribeMany5(MQTTClient handle, int count, char* con
 			{
 				if (unsub->properties.count > 0)
 				{
-					if ((resp.properties = malloc(sizeof(MQTTProperties))) == NULL)
+					if ((resp.properties = paho_malloc_t(sizeof(MQTTProperties))) == NULL)
 					{
 						rc = PAHO_MEMORY_ERROR;
 						goto exit;
@@ -2274,7 +2274,7 @@ MQTTResponse MQTTClient_unsubscribeMany5(MQTTClient handle, int count, char* con
 					ListElement* current = NULL;
 					int rc_count = 0;
 
-					if ((resp.reasonCodes = malloc(sizeof(enum MQTTReasonCodes) * (unsub->reasonCodes->count))) == NULL)
+					if ((resp.reasonCodes = paho_malloc_t(sizeof(enum MQTTReasonCodes) * (unsub->reasonCodes->count))) == NULL)
 					{
 						rc = PAHO_MEMORY_ERROR;
 						goto exit;
@@ -2386,7 +2386,7 @@ MQTTResponse MQTTClient_publish5(MQTTClient handle, const char* topicName, int p
 		goto exit;
 	}
 
-	if ((p = malloc(sizeof(Publish))) == NULL)
+	if ((p = paho_malloc_t(sizeof(Publish))) == NULL)
 	{
 		rc = PAHO_MEMORY_ERROR;
 		goto exit_and_free;
@@ -2396,7 +2396,7 @@ MQTTResponse MQTTClient_publish5(MQTTClient handle, const char* topicName, int p
 	p->payloadlen = payloadlen;
 	if (payloadlen > 0)
 	{
-		if ((p->payload = malloc(payloadlen)) == NULL)
+		if ((p->payload = paho_malloc_t(payloadlen)) == NULL)
 		{
 			rc = PAHO_MEMORY_ERROR;
 			goto exit_and_free;
@@ -2455,10 +2455,10 @@ exit_and_free:
 	if (p)
 	{
 		if (p->topic)
-			free(p->topic);
+			paho_free_t(p->topic);
 		if (p->payload)
-			free(p->payload);
-		free(p);
+			paho_free_t(p->payload);
+		paho_free_t(p);
 	}
 
 	if (rc == SOCKET_ERROR)
@@ -2927,7 +2927,7 @@ int MQTTClient_getPendingDeliveryTokens(MQTTClient handle, MQTTClient_deliveryTo
 		ListElement* current = NULL;
 		int count = 0;
 
-		*tokens = malloc(sizeof(MQTTClient_deliveryToken) * (m->c->outboundMsgs->count + 1));
+		*tokens = paho_malloc_t(sizeof(MQTTClient_deliveryToken) * (m->c->outboundMsgs->count + 1));
 		if (!*tokens)
 		{
 			rc = PAHO_MEMORY_ERROR;

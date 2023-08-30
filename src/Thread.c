@@ -28,15 +28,12 @@
 
 
 #include "Thread.h"
+#include "HeapUntracked.h"
 #if defined(THREAD_UNIT_TESTS)
 #define NOSTACKTRACE
 #endif
 #include "Log.h"
 #include "StackTrace.h"
-
-#undef malloc
-#undef realloc
-#undef free
 
 #if !defined(_WIN32) && !defined(_WIN64)
 #include <errno.h>
@@ -128,7 +125,7 @@ mutex_type Thread_create_mutex(int* rc)
 		mutex = CreateMutex(NULL, 0, NULL);
 		*rc = (mutex == NULL) ? GetLastError() : 0;
 	#else
-		mutex = malloc(sizeof(pthread_mutex_t));
+		mutex = paho_malloc_u(sizeof(pthread_mutex_t));
 		if (mutex)
 			*rc = pthread_mutex_init(mutex, NULL);
 	#endif
@@ -194,7 +191,7 @@ int Thread_destroy_mutex(mutex_type mutex)
 		rc = CloseHandle(mutex);
 	#else
 		rc = pthread_mutex_destroy(mutex);
-		free(mutex);
+		paho_free_u(mutex);
 	#endif
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -238,7 +235,7 @@ sem_type Thread_create_sem(int *rc)
 		sem = dispatch_semaphore_create(0L);
 		*rc = (sem == NULL) ? -1 : 0;
 	#else
-		sem = malloc(sizeof(sem_t));
+		sem = paho_malloc_u(sizeof(sem_t));
 		if (sem)
 			*rc = sem_init(sem, 0, 0);
 	#endif
@@ -375,7 +372,7 @@ int Thread_destroy_sem(sem_type sem)
 	  dispatch_release(sem);
 	#else
 		rc = sem_destroy(sem);
-		free(sem);
+		paho_free_u(sem);
 	#endif
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -407,7 +404,7 @@ cond_type Thread_create_cond(int *rc)
 		Log(LOG_ERROR, -1, "Error %d calling pthread_condattr_setclock(CLOCK_MONOTONIC)", rc);
 #endif
 
-	condvar = malloc(sizeof(cond_type_struct));
+	condvar = paho_malloc_u(sizeof(cond_type_struct));
 	if (condvar)
 	{
 		*rc = pthread_cond_init(&condvar->cond, &attr);
@@ -485,7 +482,7 @@ int Thread_destroy_cond(cond_type condvar)
 
 	rc = pthread_mutex_destroy(&condvar->mutex);
 	rc = pthread_cond_destroy(&condvar->cond);
-	free(condvar);
+	paho_free_u(condvar);
 
 	return rc;
 }

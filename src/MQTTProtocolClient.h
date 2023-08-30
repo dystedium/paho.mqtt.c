@@ -57,6 +57,4 @@ char* MQTTStrdup(const char* src);
 
 void MQTTProtocol_writeAvailable(SOCKET socket);
 
-//#define MQTTStrdup(src) MQTTStrncpy(malloc(strlen(src)+1), src, strlen(src)+1)
-
 #endif

@@ -63,7 +63,7 @@ static struct nameToType
 
 static char* datadup(const MQTTLenString* str)
 {
-	char* temp = malloc(str->len);
+	char* temp = paho_malloc_t(str->len);
 	if (temp)
 		memcpy(temp, str->data, str->len);
 	return temp;
@@ -112,12 +112,12 @@ int MQTTProperties_add(MQTTProperties* props, const MQTTProperty* prop)
   else if (props->array == NULL)
   {
     props->max_count = 10;
-    props->array = malloc(sizeof(MQTTProperty) * props->max_count);
+    props->array = paho_malloc_t(sizeof(MQTTProperty) * props->max_count);
   }
   else if (props->count == props->max_count)
   {
     props->max_count += 10;
-    props->array = realloc(props->array, sizeof(MQTTProperty) * props->max_count);
+    props->array = paho_realloc_t(props->array, sizeof(MQTTProperty) * props->max_count);
   }
 
   if (props->array)
@@ -279,14 +279,14 @@ int MQTTProperty_read(MQTTProperty* prop, char** pptr, char* enddata)
           if (proplen == -1)
           {
             len = -1;
-            free(prop->value.data.data);
+            paho_free_t(prop->value.data.data);
             break;
           }
           len += proplen;
           if ((prop->value.value.data = datadup(&prop->value.value)) == NULL)
           {
             len = -1;
-            free(prop->value.data.data);
+            paho_free_t(prop->value.data.data);
             break;
           }
         }
@@ -316,9 +316,9 @@ int MQTTProperties_read(MQTTProperties* properties, char** pptr, char* enddata)
       {
     	properties->max_count += 10;
     	if (properties->max_count == 10)
-    	  properties->array = malloc(sizeof(MQTTProperty) * properties->max_count);
+    	  properties->array = paho_malloc_t(sizeof(MQTTProperty) * properties->max_count);
     	else
-    	  properties->array = realloc(properties->array, sizeof(MQTTProperty) * properties->max_count);
+    	  properties->array = paho_realloc_t(properties->array, sizeof(MQTTProperty) * properties->max_count);
       }
       if (properties->array == NULL)
       {
@@ -411,14 +411,14 @@ void MQTTProperties_free(MQTTProperties* props)
     case MQTTPROPERTY_TYPE_BINARY_DATA:
     	case MQTTPROPERTY_TYPE_UTF_8_ENCODED_STRING:
     	case MQTTPROPERTY_TYPE_UTF_8_STRING_PAIR:
-    	  free(props->array[i].value.data.data);
+    	  paho_free_t(props->array[i].value.data.data);
     	  if (type == MQTTPROPERTY_TYPE_UTF_8_STRING_PAIR)
-    	    free(props->array[i].value.value.data);
+    	    paho_free_t(props->array[i].value.value.data);
 	  break;
     }
   }
   if (props->array)
-    free(props->array);
+    paho_free_t(props->array);
   memset(props, '\0', sizeof(MQTTProperties)); /* zero all fields */
 exit:
   FUNC_EXIT;

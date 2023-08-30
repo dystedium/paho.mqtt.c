@@ -373,7 +373,7 @@ int MQTTAsync_createWithOptions(MQTTAsync* handle, const char* serverURI, const 
 #endif
 		global_initialized = 1;
 	}
-	if ((m = malloc(sizeof(MQTTAsyncs))) == NULL)
+	if ((m = paho_malloc_t(sizeof(MQTTAsyncs))) == NULL)
 	{
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;
@@ -415,7 +415,7 @@ int MQTTAsync_createWithOptions(MQTTAsync* handle, const char* serverURI, const 
 	m->responses = ListInitialize();
 	ListAppend(MQTTAsync_handles, m, sizeof(MQTTAsyncs));
 
-	if ((m->c = malloc(sizeof(Clients))) == NULL)
+	if ((m->c = paho_malloc_t(sizeof(Clients))) == NULL)
 	{
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;
@@ -438,7 +438,7 @@ int MQTTAsync_createWithOptions(MQTTAsync* handle, const char* serverURI, const 
 	m->shouldBeConnected = 0;
 	if (options)
 	{
-		if ((m->createOptions = malloc(sizeof(MQTTAsync_createOptions))) == NULL)
+		if ((m->createOptions = paho_malloc_t(sizeof(MQTTAsync_createOptions))) == NULL)
 		{
 			rc = PAHO_MEMORY_ERROR;
 			goto exit;
@@ -515,24 +515,24 @@ void MQTTAsync_destroy(MQTTAsync* handle)
 			Log(LOG_ERROR, 0, NULL);
 		else
 			Log(TRACE_MIN, 1, NULL, saved_clientid, saved_socket);
-		free(saved_clientid);
+		paho_free_t(saved_clientid);
 	}
 
 	if (m->serverURI)
-		free(m->serverURI);
+		paho_free_t(m->serverURI);
 	if (m->createOptions)
-		free(m->createOptions);
+		paho_free_t(m->createOptions);
 	MQTTAsync_freeServerURIs(m);
 	if (m->connectProps)
 	{
 		MQTTProperties_free(m->connectProps);
-		free(m->connectProps);
+		paho_free_t(m->connectProps);
 		m->connectProps = NULL;
 	}
 	if (m->willProps)
 	{
 		MQTTProperties_free(m->willProps);
-		free(m->willProps);
+		paho_free_t(m->willProps);
 		m->willProps = NULL;
 	}
 	if (!ListRemove(MQTTAsync_handles, m))
@@ -696,9 +696,9 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 
 	if (m->c->will)
 	{
-		free(m->c->will->payload);
-		free(m->c->will->topic);
-		free(m->c->will);
+		paho_free_t(m->c->will->payload);
+		paho_free_t(m->c->will->topic);
+		paho_free_t(m->c->will);
 		m->c->will = NULL;
 	}
 
@@ -706,7 +706,7 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 	{
 		const void* source = NULL;
 
-		if ((m->c->will = malloc(sizeof(willMessages))) == NULL)
+		if ((m->c->will = paho_malloc_t(sizeof(willMessages))) == NULL)
 		{
 			rc = PAHO_MEMORY_ERROR;
 			goto exit;
@@ -723,7 +723,7 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 				m->c->will->payloadlen = (int)strlen(options->will->message);
 				source = (void*)options->will->message;
 			}
-			if ((m->c->will->payload = malloc(m->c->will->payloadlen)) == NULL)
+			if ((m->c->will->payload = paho_malloc_t(m->c->will->payloadlen)) == NULL)
 			{
 				rc = PAHO_MEMORY_ERROR;
 				goto exit;
@@ -744,27 +744,27 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 	if (m->c->sslopts)
 	{
 		if (m->c->sslopts->trustStore)
-			free((void*)m->c->sslopts->trustStore);
+			paho_free_t((void*)m->c->sslopts->trustStore);
 		if (m->c->sslopts->keyStore)
-			free((void*)m->c->sslopts->keyStore);
+			paho_free_t((void*)m->c->sslopts->keyStore);
 		if (m->c->sslopts->privateKey)
-			free((void*)m->c->sslopts->privateKey);
+			paho_free_t((void*)m->c->sslopts->privateKey);
 		if (m->c->sslopts->privateKeyPassword)
-			free((void*)m->c->sslopts->privateKeyPassword);
+			paho_free_t((void*)m->c->sslopts->privateKeyPassword);
 		if (m->c->sslopts->enabledCipherSuites)
-			free((void*)m->c->sslopts->enabledCipherSuites);
+			paho_free_t((void*)m->c->sslopts->enabledCipherSuites);
 		if (m->c->sslopts->struct_version >= 2)
 		{
 			if (m->c->sslopts->CApath)
-				free((void*)m->c->sslopts->CApath);
+				paho_free_t((void*)m->c->sslopts->CApath);
 		}
-		free((void*)m->c->sslopts);
+		paho_free_t((void*)m->c->sslopts);
 		m->c->sslopts = NULL;
 	}
 
 	if (options->struct_version != 0 && options->ssl)
 	{
-		if ((m->c->sslopts = malloc(sizeof(MQTTClient_SSLOptions))) == NULL)
+		if ((m->c->sslopts = paho_malloc_t(sizeof(MQTTClient_SSLOptions))) == NULL)
 		{
 			rc = PAHO_MEMORY_ERROR;
 			goto exit;
@@ -818,14 +818,14 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 
 	if (m->c->username)
 	{
-		free((void*)m->c->username);
+		paho_free_t((void*)m->c->username);
 		m->c->username = NULL;
 	}
 	if (options->username)
 		m->c->username = MQTTStrdup(options->username);
 	if (m->c->password)
 	{
-		free((void*)m->c->password);
+		paho_free_t((void*)m->c->password);
 		m->c->password = NULL;
 	}
 	if (options->password)
@@ -836,7 +836,7 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 	else if (options->struct_version >= 5 && options->binarypwd.data)
 	{
 		m->c->passwordlen = options->binarypwd.len;
-		if ((m->c->password = malloc(m->c->passwordlen)) == NULL)
+		if ((m->c->password = paho_malloc_t(m->c->passwordlen)) == NULL)
 		{
 			rc = PAHO_MEMORY_ERROR;
 			goto exit;
@@ -855,7 +855,7 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 		int i;
 
 		m->serverURIcount = options->serverURIcount;
-		if ((m->serverURIs = malloc(options->serverURIcount * sizeof(char*))) == NULL)
+		if ((m->serverURIs = paho_malloc_t(options->serverURIcount * sizeof(char*))) == NULL)
 		{
 			rc = PAHO_MEMORY_ERROR;
 			goto exit;
@@ -867,13 +867,13 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 	if (m->connectProps)
 	{
 		MQTTProperties_free(m->connectProps);
-		free(m->connectProps);
+		paho_free_t(m->connectProps);
 		m->connectProps = NULL;
 	}
 	if (m->willProps)
 	{
 		MQTTProperties_free(m->willProps);
-		free(m->willProps);
+		paho_free_t(m->willProps);
 		m->willProps = NULL;
 	}
 	if (options->struct_version >=6)
@@ -882,7 +882,7 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 		{
 			MQTTProperties initialized = MQTTProperties_initializer;
 
-			if ((m->connectProps = malloc(sizeof(MQTTProperties))) == NULL)
+			if ((m->connectProps = paho_malloc_t(sizeof(MQTTProperties))) == NULL)
 			{
 				rc = PAHO_MEMORY_ERROR;
 				goto exit;
@@ -899,7 +899,7 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 		{
 			MQTTProperties initialized = MQTTProperties_initializer;
 
-			if ((m->willProps = malloc(sizeof(MQTTProperties))) == NULL)
+			if ((m->willProps = paho_malloc_t(sizeof(MQTTProperties))) == NULL)
 			{
 				rc = PAHO_MEMORY_ERROR;
 				goto exit;
@@ -911,7 +911,7 @@ int MQTTAsync_connect(MQTTAsync handle, const MQTTAsync_connectOptions* options)
 	}
 
 	/* Add connect request to operation queue */
-	if ((conn = malloc(sizeof(MQTTAsync_queuedCommand))) == NULL)
+	if ((conn = paho_malloc_t(sizeof(MQTTAsync_queuedCommand))) == NULL)
 	{
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;
@@ -958,7 +958,7 @@ int MQTTAsync_reconnect(MQTTAsync handle)
 	else
 	{
 		/* to reconnect, put the connect command to the head of the command queue */
-		MQTTAsync_queuedCommand* conn = malloc(sizeof(MQTTAsync_queuedCommand));
+		MQTTAsync_queuedCommand* conn = paho_malloc_t(sizeof(MQTTAsync_queuedCommand));
 		if (!conn)
 		{
 			rc = PAHO_MEMORY_ERROR;
@@ -1030,7 +1030,7 @@ int MQTTAsync_subscribeMany(MQTTAsync handle, int count, char* const* topic, con
 		goto exit;
 
 	/* Add subscribe request to operation queue */
-	if ((sub = malloc(sizeof(MQTTAsync_queuedCommand))) == NULL)
+	if ((sub = paho_malloc_t(sizeof(MQTTAsync_queuedCommand))) == NULL)
 	{
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;
@@ -1052,7 +1052,7 @@ int MQTTAsync_subscribeMany(MQTTAsync handle, int count, char* const* topic, con
 			sub->command.details.sub.opts = response->subscribeOptions;
 			if (count > 1)
 			{
-				if ((sub->command.details.sub.optlist = malloc(sizeof(MQTTSubscribe_options) * count)) == NULL)
+				if ((sub->command.details.sub.optlist = paho_malloc_t(sizeof(MQTTSubscribe_options) * count)) == NULL)
 				{
 					rc = PAHO_MEMORY_ERROR;
 					goto exit;
@@ -1073,8 +1073,8 @@ int MQTTAsync_subscribeMany(MQTTAsync handle, int count, char* const* topic, con
 	}
 	sub->command.type = SUBSCRIBE;
 	sub->command.details.sub.count = count;
-	sub->command.details.sub.topics = malloc(sizeof(char*) * count);
-	sub->command.details.sub.qoss = malloc(sizeof(int) * count);
+	sub->command.details.sub.topics = paho_malloc_t(sizeof(char*) * count);
+	sub->command.details.sub.qoss = paho_malloc_t(sizeof(int) * count);
 	if (sub->command.details.sub.topics && sub->command.details.sub.qoss)
 	{
 		for (i = 0; i < count; ++i)
@@ -1149,7 +1149,7 @@ int MQTTAsync_unsubscribeMany(MQTTAsync handle, int count, char* const* topic, M
 		goto exit;
 
 	/* Add unsubscribe request to operation queue */
-	if ((unsub = malloc(sizeof(MQTTAsync_queuedCommand))) == NULL)
+	if ((unsub = paho_malloc_t(sizeof(MQTTAsync_queuedCommand))) == NULL)
 	{
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;
@@ -1170,7 +1170,7 @@ int MQTTAsync_unsubscribeMany(MQTTAsync handle, int count, char* const* topic, M
 			unsub->command.properties = MQTTProperties_copy(&response->properties);
 	}
 	unsub->command.details.unsub.count = count;
-	if ((unsub->command.details.unsub.topics = malloc(sizeof(char*) * count)) == NULL)
+	if ((unsub->command.details.unsub.topics = paho_malloc_t(sizeof(char*) * count)) == NULL)
 	{
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;
@@ -1247,7 +1247,7 @@ int MQTTAsync_send(MQTTAsync handle, const char* destinationName, int payloadlen
 		goto exit;
 
 	/* Add publish request to operation queue */
-	if ((pub = malloc(sizeof(MQTTAsync_queuedCommand))) == NULL)
+	if ((pub = paho_malloc_t(sizeof(MQTTAsync_queuedCommand))) == NULL)
 	{
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;
@@ -1269,15 +1269,15 @@ int MQTTAsync_send(MQTTAsync handle, const char* destinationName, int payloadlen
 	}
 	if ((pub->command.details.pub.destinationName = MQTTStrdup(destinationName)) == NULL)
 	{
-		free(pub);
+		paho_free_t(pub);
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;
 	}
 	pub->command.details.pub.payloadlen = payloadlen;
-	if ((pub->command.details.pub.payload = malloc(payloadlen)) == NULL)
+	if ((pub->command.details.pub.payload = paho_malloc_t(payloadlen)) == NULL)
 	{
-		free(pub->command.details.pub.destinationName);
-		free(pub);
+		paho_free_t(pub->command.details.pub.destinationName);
+		paho_free_t(pub);
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;
 	}
@@ -1469,7 +1469,7 @@ int MQTTAsync_getPendingTokens(MQTTAsync handle, MQTTAsync_token **tokens)
 		count += m->c->outboundMsgs->count;
 	if (count == 0)
 		goto exit; /* no tokens to return */
-	*tokens = malloc(sizeof(MQTTAsync_token) * (count + 1));  /* add space for sentinel at end of list */
+	*tokens = paho_malloc_t(sizeof(MQTTAsync_token) * (count + 1));  /* add space for sentinel at end of list */
 	if (!*tokens)
 	{
 		rc = PAHO_MEMORY_ERROR;
@@ -1820,8 +1820,8 @@ void MQTTAsync_freeMessage(MQTTAsync_message** message)
 {
 	FUNC_ENTRY;
 	MQTTProperties_free(&(*message)->properties);
-	free((*message)->payload);
-	free(*message);
+	paho_free_t((*message)->payload);
+	paho_free_t(*message);
 	*message = NULL;
 	FUNC_EXIT;
 }
@@ -1830,7 +1830,7 @@ void MQTTAsync_freeMessage(MQTTAsync_message** message)
 void MQTTAsync_free(void* memory)
 {
 	FUNC_ENTRY;
-	free(memory);
+	paho_free_t(memory);
 	FUNC_EXIT;
 }
 
@@ -1841,7 +1841,7 @@ void* MQTTAsync_malloc(size_t size)
 	int rc = 0;
 
 	FUNC_ENTRY;
-	val = malloc(size);
+	val = paho_malloc_t(size);
 	rc = (val != NULL);
 	FUNC_EXIT_RC(rc);
 	return val;
@@ -1853,9 +1853,9 @@ static void MQTTAsync_freeServerURIs(MQTTAsyncs* m)
 	int i;
 
 	for (i = 0; i < m->serverURIcount; ++i)
-		free(m->serverURIs[i]);
+		paho_free_t(m->serverURIs[i]);
 	m->serverURIcount = 0;
 	if (m->serverURIs)
-		free(m->serverURIs);
+		paho_free_t(m->serverURIs);
 	m->serverURIs = NULL;
 }

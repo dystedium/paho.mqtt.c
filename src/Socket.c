@@ -179,13 +179,13 @@ void Socket_outTerminate(void)
 	ListFree(mod_s.clientsds);
 #else
 	if (mod_s.fds_read)
-		free(mod_s.fds_read);
+		paho_free_t(mod_s.fds_read);
 	if (mod_s.fds_write)
-		free(mod_s.fds_write);
+		paho_free_t(mod_s.fds_write);
 	if (mod_s.saved.fds_write)
-		free(mod_s.saved.fds_write);
+		paho_free_t(mod_s.saved.fds_write);
 	if (mod_s.saved.fds_read)
-		free(mod_s.saved.fds_read);
+		paho_free_t(mod_s.saved.fds_read);
 #endif
 	SocketBuffer_terminate();
 #if defined(_WIN32) || defined(_WIN64)
@@ -214,7 +214,7 @@ int Socket_addSocket(SOCKET newSd)
 		}
 		else
 		{
-			SOCKET* pnewSd = (SOCKET*)malloc(sizeof(newSd));
+			SOCKET* pnewSd = (SOCKET*)paho_malloc_t(sizeof(newSd));
 
 			if (!pnewSd)
 			{
@@ -224,7 +224,7 @@ int Socket_addSocket(SOCKET newSd)
 			*pnewSd = newSd;
 			if (!ListAppend(mod_s.clientsds, pnewSd, sizeof(newSd)))
 			{
-				free(pnewSd);
+				paho_free_t(pnewSd);
 				rc = PAHO_MEMORY_ERROR;
 				goto exit;
 			}
@@ -273,18 +273,18 @@ int Socket_addSocket(SOCKET newSd)
 	Thread_lock_mutex(socket_mutex);
 	mod_s.nfds++;
 	if (mod_s.fds_read)
-		mod_s.fds_read = realloc(mod_s.fds_read, mod_s.nfds * sizeof(mod_s.fds_read[0]));
+		mod_s.fds_read = paho_realloc_t(mod_s.fds_read, mod_s.nfds * sizeof(mod_s.fds_read[0]));
 	else
-		mod_s.fds_read = malloc(mod_s.nfds * sizeof(mod_s.fds_read[0]));
+		mod_s.fds_read = paho_malloc_t(mod_s.nfds * sizeof(mod_s.fds_read[0]));
 	if (!mod_s.fds_read)
 	{
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;
 	}
 	if (mod_s.fds_write)
-		mod_s.fds_write = realloc(mod_s.fds_write, mod_s.nfds * sizeof(mod_s.fds_write[0]));
+		mod_s.fds_write = paho_realloc_t(mod_s.fds_write, mod_s.nfds * sizeof(mod_s.fds_write[0]));
 	else
-		mod_s.fds_write = malloc(mod_s.nfds * sizeof(mod_s.fds_write[0]));
+		mod_s.fds_write = paho_malloc_t(mod_s.nfds * sizeof(mod_s.fds_write[0]));
 	if (!mod_s.fds_read)
 	{
 		rc = PAHO_MEMORY_ERROR;
@@ -517,13 +517,13 @@ SOCKET Socket_getReadySocket(int more_work, int timeout, mutex_type mutex, int* 
 		{
 			mod_s.saved.nfds = mod_s.nfds;
 			if (mod_s.saved.fds_read)
-				mod_s.saved.fds_read = realloc(mod_s.saved.fds_read, mod_s.nfds * sizeof(struct pollfd));
+				mod_s.saved.fds_read = paho_realloc_t(mod_s.saved.fds_read, mod_s.nfds * sizeof(struct pollfd));
 			else
-				mod_s.saved.fds_read = malloc(mod_s.nfds * sizeof(struct pollfd));
+				mod_s.saved.fds_read = paho_malloc_t(mod_s.nfds * sizeof(struct pollfd));
 			if (mod_s.saved.fds_write)
-				mod_s.saved.fds_write = realloc(mod_s.saved.fds_write, mod_s.nfds * sizeof(struct pollfd));
+				mod_s.saved.fds_write = paho_realloc_t(mod_s.saved.fds_write, mod_s.nfds * sizeof(struct pollfd));
 			else
-				mod_s.saved.fds_write = malloc(mod_s.nfds * sizeof(struct pollfd));
+				mod_s.saved.fds_write = paho_malloc_t(mod_s.nfds * sizeof(struct pollfd));
 		}
 		memcpy(mod_s.saved.fds_read, mod_s.fds_read, mod_s.nfds * sizeof(struct pollfd));
 		memcpy(mod_s.saved.fds_write, mod_s.fds_write, mod_s.nfds * sizeof(struct pollfd));
@@ -798,7 +798,7 @@ int Socket_putdatas(SOCKET socket, char* buf0, size_t buf0len, PacketBuffers buf
 			rc = TCPSOCKET_COMPLETE;
 		else
 		{
-			SOCKET* sockmem = (SOCKET*)malloc(sizeof(SOCKET));
+			SOCKET* sockmem = (SOCKET*)paho_malloc_t(sizeof(SOCKET));
 
 			if (!sockmem)
 			{
@@ -815,7 +815,7 @@ int Socket_putdatas(SOCKET socket, char* buf0, size_t buf0len, PacketBuffers buf
 			*sockmem = socket;
 			if (!ListAppend(mod_s.write_pending, sockmem, sizeof(int)))
 			{
-				free(sockmem);
+				paho_free_t(sockmem);
 				rc = PAHO_MEMORY_ERROR;
 				goto exit;
 			}
@@ -958,7 +958,7 @@ int Socket_close(SOCKET socket)
 
 		if (--mod_s.nfds == 0)
 		{
-			free(mod_s.fds_read);
+			paho_free_t(mod_s.fds_read);
 			mod_s.fds_read = NULL;
 		}
 		else
@@ -968,7 +968,7 @@ int Socket_close(SOCKET socket)
 				/* shift array to remove the socket in question */
 				memmove(fd, fd + 1, (mod_s.nfds - (fd - mod_s.fds_read)) * sizeof(mod_s.fds_read[0]));
 			}
-			mod_s.fds_read = realloc(mod_s.fds_read, sizeof(mod_s.fds_read[0]) * mod_s.nfds);
+			mod_s.fds_read = paho_realloc_t(mod_s.fds_read, sizeof(mod_s.fds_read[0]) * mod_s.nfds);
 			if (mod_s.fds_read == NULL)
 			{
 				rc = PAHO_MEMORY_ERROR;
@@ -987,7 +987,7 @@ int Socket_close(SOCKET socket)
 
 		if (mod_s.nfds == 0)
 		{
-			free(mod_s.fds_write);
+			paho_free_t(mod_s.fds_write);
 			mod_s.fds_write = NULL;
 		}
 		else
@@ -997,7 +997,7 @@ int Socket_close(SOCKET socket)
 				/* shift array to remove the socket in question */
 				memmove(fd, fd + 1, (mod_s.nfds - (fd - mod_s.fds_write)) * sizeof(mod_s.fds_write[0]));
 			}
-			mod_s.fds_write = realloc(mod_s.fds_write, sizeof(mod_s.fds_write[0]) * mod_s.nfds);
+			mod_s.fds_write = paho_realloc_t(mod_s.fds_write, sizeof(mod_s.fds_write[0]) * mod_s.nfds);
 			if (mod_s.fds_write == NULL)
 			{
 				rc = PAHO_MEMORY_ERROR;
@@ -1054,7 +1054,7 @@ int Socket_new(const char* addr, size_t addr_len, int port, SOCKET* sock)
 		--addr_len;
 	}
 
-	if ((addr_mem = malloc( addr_len + 1u )) == NULL)
+	if ((addr_mem = paho_malloc_t( addr_len + 1u )) == NULL)
 	{
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;
@@ -1172,7 +1172,7 @@ int Socket_new(const char* addr, size_t addr_len, int port, SOCKET* sock)
 					rc = Socket_error("connect", *sock);
 				if (rc == EINPROGRESS || rc == EWOULDBLOCK)
 				{
-					SOCKET* pnewSd = (SOCKET*)malloc(sizeof(SOCKET));
+					SOCKET* pnewSd = (SOCKET*)paho_malloc_t(sizeof(SOCKET));
 					ListElement* result = NULL;
 
 					if (!pnewSd)
@@ -1186,7 +1186,7 @@ int Socket_new(const char* addr, size_t addr_len, int port, SOCKET* sock)
 					Thread_unlock_mutex(socket_mutex);
 					if (!result)
 					{
-						free(pnewSd);
+						paho_free_t(pnewSd);
 						rc = PAHO_MEMORY_ERROR;
 						goto exit;
 					}
@@ -1207,7 +1207,7 @@ int Socket_new(const char* addr, size_t addr_len, int port, SOCKET* sock)
 
 exit:
 	if (addr_mem)
-		free(addr_mem);
+		paho_free_t(addr_mem);
 
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -1286,7 +1286,7 @@ int Socket_continueWrite(SOCKET socket)
 			{
 				if (pw->frees[i])
                 {
-					free(pw->iovecs[i].iov_base);
+					paho_free_t(pw->iovecs[i].iov_base);
                     pw->iovecs[i].iov_base = NULL;
                 }
 			}
@@ -1305,7 +1305,7 @@ int Socket_continueWrite(SOCKET socket)
 		{
 			if (pw->frees[i])
             {
-				free(pw->iovecs[i].iov_base);
+				paho_free_t(pw->iovecs[i].iov_base);
                 pw->iovecs[i].iov_base = NULL;
             }
 		}
@@ -1346,7 +1346,7 @@ int Socket_abortWrite(SOCKET socket)
 		if (pw->frees[i])
 		{
 			Log(TRACE_MIN, -1, "Cleaning in abortWrite for socket %d", socket);
-			free(pw->iovecs[i].iov_base);
+			paho_free_t(pw->iovecs[i].iov_base);
 		}
 	}
 exit:

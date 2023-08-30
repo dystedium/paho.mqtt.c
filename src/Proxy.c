@@ -101,7 +101,7 @@ int Proxy_connect(networkHandles *net, int ssl, const char *hostname)
 #endif
 		if ( i==0 && buf_len > 0 ) {
 			++buf_len;
-			if ((buf = malloc( buf_len )) == NULL)
+			if ((buf = paho_malloc_t( buf_len )) == NULL)
 			{
 				rc = PAHO_MEMORY_ERROR;
 				goto exit;
@@ -112,7 +112,7 @@ int Proxy_connect(networkHandles *net, int ssl, const char *hostname)
 	Log(TRACE_PROTOCOL, -1, "Proxy_connect: \"%s\"", buf);
 
 	Socket_putdatas(net->socket, buf, buf_len, nulbufs);
-	free(buf);
+	paho_free_t(buf);
 	buf = NULL;
 
 	time(&timeout);

@@ -70,7 +70,7 @@ int MQTTPacket_send_connect(Clients* client, int MQTTVersion,
 			len += MQTTProperties_len(willProperties);
 	}
 
-	ptr = buf = malloc(len);
+	ptr = buf = paho_malloc_t(len);
 	if (ptr == NULL)
 		goto exit_nofree;
 	if (MQTTVersion == MQTTVERSION_3_1)
@@ -124,7 +124,7 @@ int MQTTPacket_send_connect(Clients* client, int MQTTVersion,
 			MQTTVersion, client->cleansession, rc);
 exit:
 	if (rc != TCPSOCKET_INTERRUPTED)
-		free(buf);
+		paho_free_t(buf);
 exit_nofree:
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -146,13 +146,13 @@ void* MQTTPacket_connack(int MQTTVersion, unsigned char aHeader, char* data, siz
 	char* enddata = &data[datalen];
 
 	FUNC_ENTRY;
-	if ((pack = malloc(sizeof(Connack))) == NULL)
+	if ((pack = paho_malloc_t(sizeof(Connack))) == NULL)
 		goto exit;
 	pack->MQTTVersion = MQTTVersion;
 	pack->header.byte = aHeader;
 	if (datalen < 2) /* enough data for connect flags and reason code? */
 	{
-		free(pack);
+		paho_free_t(pack);
 		pack = NULL;
 		goto exit;
 	}
@@ -165,9 +165,9 @@ void* MQTTPacket_connack(int MQTTVersion, unsigned char aHeader, char* data, siz
 		if (MQTTProperties_read(&pack->properties, &curdata, enddata) != 1)
 		{
 			if (pack->properties.array)
-				free(pack->properties.array);
+				paho_free_t(pack->properties.array);
 			if (pack)
-				free(pack);
+				paho_free_t(pack);
 			pack = NULL; /* signal protocol error */
 			goto exit;
 		}
@@ -187,7 +187,7 @@ void MQTTPacket_freeConnack(Connack* pack)
 	FUNC_ENTRY;
 	if (pack->MQTTVersion >= MQTTVERSION_5)
 		MQTTProperties_free(&pack->properties);
-	free(pack);
+	paho_free_t(pack);
 	FUNC_EXIT;
 }
 
@@ -244,7 +244,7 @@ int MQTTPacket_send_subscribe(List* topics, List* qoss, MQTTSubscribe_options* o
 	if (client->MQTTVersion >= MQTTVERSION_5)
 		datalen += MQTTProperties_len(props);
 
-	ptr = data = malloc(datalen);
+	ptr = data = paho_malloc_t(datalen);
 	if (ptr == NULL)
 		goto exit;
 	writeInt(&ptr, msgid);
@@ -272,7 +272,7 @@ int MQTTPacket_send_subscribe(List* topics, List* qoss, MQTTSubscribe_options* o
 	rc = MQTTPacket_send(&client->net, header, data, datalen, 1, client->MQTTVersion);
 	Log(LOG_PROTOCOL, 22, NULL, client->net.socket, client->clientID, msgid, rc);
 	if (rc != TCPSOCKET_INTERRUPTED)
-		free(data);
+		paho_free_t(data);
 exit:
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -294,13 +294,13 @@ void* MQTTPacket_suback(int MQTTVersion, unsigned char aHeader, char* data, size
 	char* enddata = &data[datalen];
 
 	FUNC_ENTRY;
-	if ((pack = malloc(sizeof(Suback))) == NULL)
+	if ((pack = paho_malloc_t(sizeof(Suback))) == NULL)
 		goto exit;
 	pack->MQTTVersion = MQTTVersion;
 	pack->header.byte = aHeader;
 	if (enddata - curdata < 2)  /* Is there enough data to read the msgid? */
 	{
-		free(pack);
+		paho_free_t(pack);
 		pack = NULL;
 		goto exit;
 	}
@@ -312,9 +312,9 @@ void* MQTTPacket_suback(int MQTTVersion, unsigned char aHeader, char* data, size
 		if (MQTTProperties_read(&pack->properties, &curdata, enddata) != 1)
 		{
 			if (pack->properties.array)
-				free(pack->properties.array);
+				paho_free_t(pack->properties.array);
 			if (pack)
-				free(pack);
+				paho_free_t(pack);
 			pack = NULL; /* signal protocol error */
 			goto exit;
 		}
@@ -323,13 +323,13 @@ void* MQTTPacket_suback(int MQTTVersion, unsigned char aHeader, char* data, size
 	while ((size_t)(curdata - data) < datalen)
 	{
 		unsigned int* newint;
-		newint = malloc(sizeof(unsigned int));
+		newint = paho_malloc_t(sizeof(unsigned int));
 		if (newint == NULL)
 		{
 			if (pack->properties.array)
-				free(pack->properties.array);
+				paho_free_t(pack->properties.array);
 			if (pack)
-				free(pack);
+				paho_free_t(pack);
 			pack = NULL; /* signal protocol error */
 			goto exit;
 		}
@@ -339,9 +339,9 @@ void* MQTTPacket_suback(int MQTTVersion, unsigned char aHeader, char* data, size
 	if (pack->qoss->count == 0)
 	{
 		if (pack->properties.array)
-			free(pack->properties.array);
+			paho_free_t(pack->properties.array);
 		ListFree(pack->qoss);
-		free(pack);
+		paho_free_t(pack);
 		pack = NULL;
 	}
 exit:
@@ -378,7 +378,7 @@ int MQTTPacket_send_unsubscribe(List* topics, MQTTProperties* props, int msgid, 
 		datalen += (int)strlen((char*)(elem->content));
 	if (client->MQTTVersion >= MQTTVERSION_5)
 		datalen += MQTTProperties_len(props);
-	ptr = data = malloc(datalen);
+	ptr = data = paho_malloc_t(datalen);
 	if (ptr == NULL)
 		goto exit;
 
@@ -393,7 +393,7 @@ int MQTTPacket_send_unsubscribe(List* topics, MQTTProperties* props, int msgid, 
 	rc = MQTTPacket_send(&client->net, header, data, datalen, 1, client->MQTTVersion);
 	Log(LOG_PROTOCOL, 25, NULL, client->net.socket, client->clientID, msgid, rc);
 	if (rc != TCPSOCKET_INTERRUPTED)
-		free(data);
+		paho_free_t(data);
 exit:
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -415,13 +415,13 @@ void* MQTTPacket_unsuback(int MQTTVersion, unsigned char aHeader, char* data, si
 	char* enddata = &data[datalen];
 
 	FUNC_ENTRY;
-	if ((pack = malloc(sizeof(Unsuback))) == NULL)
+	if ((pack = paho_malloc_t(sizeof(Unsuback))) == NULL)
 		goto exit;
 	pack->MQTTVersion = MQTTVersion;
 	pack->header.byte = aHeader;
 	if (enddata - curdata < 2)  /* Is there enough data? */
 	{
-		free(pack);
+		paho_free_t(pack);
 		pack = NULL;
 		goto exit;
 	}
@@ -434,9 +434,9 @@ void* MQTTPacket_unsuback(int MQTTVersion, unsigned char aHeader, char* data, si
 		if (MQTTProperties_read(&pack->properties, &curdata, enddata) != 1)
 		{
 			if (pack->properties.array)
-				free(pack->properties.array);
+				paho_free_t(pack->properties.array);
 			if (pack)
-				free(pack);
+				paho_free_t(pack);
 			pack = NULL; /* signal protocol error */
 			goto exit;
 		}
@@ -444,13 +444,13 @@ void* MQTTPacket_unsuback(int MQTTVersion, unsigned char aHeader, char* data, si
 		while ((size_t)(curdata - data) < datalen)
 		{
 			enum MQTTReasonCodes* newrc;
-			newrc = malloc(sizeof(enum MQTTReasonCodes));
+			newrc = paho_malloc_t(sizeof(enum MQTTReasonCodes));
 			if (newrc == NULL)
 			{
 				if (pack->properties.array)
-					free(pack->properties.array);
+					paho_free_t(pack->properties.array);
 				if (pack)
-					free(pack);
+					paho_free_t(pack);
 				pack = NULL; /* signal protocol error */
 				goto exit;
 			}
@@ -461,9 +461,9 @@ void* MQTTPacket_unsuback(int MQTTVersion, unsigned char aHeader, char* data, si
 		{
 			ListFree(pack->reasonCodes);
 			if (pack->properties.array)
-				free(pack->properties.array);
+				paho_free_t(pack->properties.array);
 			if (pack)
-				free(pack);
+				paho_free_t(pack);
 			pack = NULL;
 		}
 	}

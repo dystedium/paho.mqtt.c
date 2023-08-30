@@ -150,7 +150,7 @@ int MQTTProtocol_setHTTPProxy(Clients* aClient, char* source, char** dest, char*
 
 	if (*auth_dest)
 	{
-		free(*auth_dest);
+		paho_free_t(*auth_dest);
 		*auth_dest = NULL;
 	}
 
@@ -168,7 +168,7 @@ int MQTTProtocol_setHTTPProxy(Clients* aClient, char* source, char** dest, char*
 			basic_auth_in_len = (b64_size_t)(p1 - source);
 			if (basic_auth_in_len > 0)
 			{
-				basic_auth = (b64_data_t *)malloc(sizeof(char)*(basic_auth_in_len+1));
+				basic_auth = (b64_data_t *)paho_malloc_t(sizeof(char)*(basic_auth_in_len+1));
 				if (!basic_auth)
 				{
 					rc = PAHO_MEMORY_ERROR;
@@ -176,14 +176,14 @@ int MQTTProtocol_setHTTPProxy(Clients* aClient, char* source, char** dest, char*
 				}
 				MQTTProtocol_specialChars((char*)basic_auth, source, &basic_auth_in_len);
 				basic_auth_out_len = Base64_encodeLength(basic_auth, basic_auth_in_len) + 1; /* add 1 for trailing NULL */
-				if ((*auth_dest = (char *)malloc(sizeof(char)*basic_auth_out_len)) == NULL)
+				if ((*auth_dest = (char *)paho_malloc_t(sizeof(char)*basic_auth_out_len)) == NULL)
 				{
-					free(basic_auth);
+					paho_free_t(basic_auth);
 					rc = PAHO_MEMORY_ERROR;
 					goto exit;
 				}
 				Base64_encode(*auth_dest, basic_auth_out_len, basic_auth, basic_auth_in_len);
-				free(basic_auth);
+				paho_free_t(basic_auth);
 			}
 		}
 	}

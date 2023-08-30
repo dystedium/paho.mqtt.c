@@ -21,15 +21,24 @@
  * Node structure.
  * */
 
-#define TREE_C /* so that malloc/free/realloc aren't redefined by Heap.h */
-
 #include "Tree.h"
+
+#include "Heap.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "Heap.h"
+
+#if defined(UNIT_TESTS)
+#define tree_malloc_t(x) paho_malloc_u(x)
+#define tree_malloc_c(c, x) paho_malloc_u(x)
+#define tree_free_c(c, x) paho_free_u(x)
+#else
+#define tree_malloc_t(x) paho_malloc_t(x)
+#define tree_malloc_c(c, x) paho_malloc_c(c, x)
+#define tree_free_c(c, x) paho_free_c(c, x)
+#endif
 
 
 int isRed(Node* aNode);
@@ -64,11 +73,7 @@ void TreeInitializeNoMalloc(Tree* aTree, int(*compare)(void*, void*, int))
  */
 Tree* TreeInitialize(int(*compare)(void*, void*, int))
 {
-#if defined(UNIT_TESTS) || defined(NO_HEAP_TRACKING)
-	Tree* newt = malloc(sizeof(Tree));
-#else
-	Tree* newt = mymalloc(__FILE__, __LINE__, sizeof(Tree));
-#endif
+	Tree* newt = tree_malloc_t(sizeof(Tree));
 	if (newt)
 		TreeInitializeNoMalloc(newt, compare);
 	return newt;
@@ -84,11 +89,7 @@ void TreeAddIndex(Tree* aTree, int(*compare)(void*, void*, int))
 
 void TreeFree(Tree* aTree)
 {
-#if defined(UNIT_TESTS) || defined(NO_HEAP_TRACKING)
-	free(aTree);
-#else
-	(aTree->heap_tracking) ? myfree(__FILE__, __LINE__, aTree) : free(aTree);
-#endif
+	tree_free_c(aTree->heap_tracking, aTree);
 }
 
 
@@ -242,11 +243,7 @@ void* TreeAddByIndex(Tree* aTree, void* content, size_t size, int index)
 	}
 	else
 	{
-		#if defined(UNIT_TESTS) || defined(NO_HEAP_TRACKING)
-			newel = malloc(sizeof(Node));
-		#else
-			newel = (aTree->heap_tracking) ? mymalloc(__FILE__, __LINE__, sizeof(Node)) : malloc(sizeof(Node));
-		#endif
+		newel = tree_malloc_c(aTree->heap_tracking, sizeof(Node));
 		if (newel == NULL)
 			goto exit;
 		memset(newel, '\0', sizeof(Node));
@@ -465,11 +462,7 @@ void* TreeRemoveNodeIndex(Tree* aTree, Node* curnode, int index)
 			TreeBalanceAfterRemove(aTree, curchild, index);
 	}
 
-#if defined(UNIT_TESTS) || defined(NO_HEAP_TRACKING)
-	free(redundant);
-#else
-	(aTree->heap_tracking) ? myfree(__FILE__, __LINE__, redundant) : free(redundant);
-#endif
+	tree_free_c(aTree->heap_tracking, redundant);
 	if (index == 0)
 	{
 		aTree->size -= size;
@@ -616,7 +609,7 @@ int test(int limit)
 
 	srand(time(NULL));
 
-	ip = malloc(sizeof(int));
+	ip = paho_malloc_u(sizeof(int));
 	*ip = 2;
 	TreeAdd(t, (void*)ip, sizeof(int));
 
@@ -625,19 +618,19 @@ int test(int limit)
 	i = 2;
 	void* result = TreeRemove(t, (void*)&i);
 	if (result)
-		free(result);
+		paho_free_u(result);
 
 	int actual[limit];
 	for (i = 0; i < limit; i++)
 	{
 		void* replaced = NULL;
 
-		ip = malloc(sizeof(int));
+		ip = paho_malloc_u(sizeof(int));
 		*ip = rand();
 		replaced = TreeAdd(t, (void*)ip, sizeof(int));
 		if (replaced) /* duplicate */
 		{
-			free(replaced);
+			paho_free_u(replaced);
 			actual[i] = -1;
 		}
 		else
@@ -688,7 +681,7 @@ int test(int limit)
 		if (found)
 		{
 			printf("%d Tree remove %d %d\n", i, parm, *(int*)(found));
-			free(found);
+			paho_free_u(found);
 		}
 		else
 		{

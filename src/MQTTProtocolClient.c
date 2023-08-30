@@ -113,19 +113,19 @@ static void MQTTProtocol_storeQoS0(Clients* pubclient, Publish* publish)
 
 	FUNC_ENTRY;
 	/* store the publication until the write is finished */
-	if ((pw = malloc(sizeof(pending_write))) == NULL)
+	if ((pw = paho_malloc_t(sizeof(pending_write))) == NULL)
 		goto exit;
 	Log(TRACE_MIN, 12, NULL);
 	if ((pw->p = MQTTProtocol_storePublication(publish, &len)) == NULL)
 	{
-		free(pw);
+		paho_free_t(pw);
 		goto exit;
 	}
 	pw->socket = pubclient->net.socket;
 	if (!ListAppend(&(state.pending_writes), pw, sizeof(pending_write)+len))
 	{
-		free(pw->p);
-		free(pw);
+		paho_free_t(pw->p);
+		paho_free_t(pw);
 		goto exit;
 	}
 	/* we don't copy QoS 0 messages unless we have to, so now we have to tell the socket buffer where
@@ -205,7 +205,7 @@ int MQTTProtocol_startPublish(Clients* pubclient, Publish* publish, int qos, int
  */
 Messages* MQTTProtocol_createMessage(Publish* publish, Messages **mm, int qos, int retained, int allocatePayload)
 {
-	Messages* m = malloc(sizeof(Messages));
+	Messages* m = paho_malloc_t(sizeof(Messages));
 
 	FUNC_ENTRY;
 	if (!m)
@@ -217,7 +217,7 @@ Messages* MQTTProtocol_createMessage(Publish* publish, Messages **mm, int qos, i
 		*mm = m;
 		if ((m->publish = MQTTProtocol_storePublication(publish, &len1)) == NULL)
 		{
-			free(m);
+			paho_free_t(m);
 			goto exit;
 		}
 		m->len += len1;
@@ -225,9 +225,9 @@ Messages* MQTTProtocol_createMessage(Publish* publish, Messages **mm, int qos, i
 		{
 			char *temp = m->publish->payload;
 
-			if ((m->publish->payload = malloc(m->publish->payloadlen)) == NULL)
+			if ((m->publish->payload = paho_malloc_t(m->publish->payloadlen)) == NULL)
 			{
-				free(m);
+				paho_free_t(m);
 				goto exit;
 			}
 			memcpy(m->publish->payload, temp, m->publish->payloadlen);
@@ -261,7 +261,7 @@ exit:
  */
 Publications* MQTTProtocol_storePublication(Publish* publish, int* len)
 {
-	Publications* p = malloc(sizeof(Publications));
+	Publications* p = paho_malloc_t(sizeof(Publications));
 
 	FUNC_ENTRY;
 	if (!p)
@@ -280,7 +280,7 @@ Publications* MQTTProtocol_storePublication(Publish* publish, int* len)
 
 	if ((ListAppend(&(state.publications), p, *len)) == NULL)
 	{
-		free(p);
+		paho_free_t(p);
 		p = NULL;
 	}
 exit:
@@ -299,12 +299,12 @@ void MQTTProtocol_removePublication(Publications* p)
 	{
 		if (p->payload)
 		{
-			free(p->payload);
+			paho_free_t(p->payload);
 			p->payload = NULL;
 		}
 		if (p->topic)
 		{
-			free(p->topic);
+			paho_free_t(p->topic);
 			p->topic = NULL;
 		}
 		ListRemove(&(state.publications), p);
@@ -357,7 +357,7 @@ int MQTTProtocol_handlePublishes(void* pack, SOCKET sock)
 		int len;
 		int already_received = 0;
 		ListElement* listElem = NULL;
-		Messages* m = malloc(sizeof(Messages));
+		Messages* m = paho_malloc_t(sizeof(Messages));
 		Publications* p = NULL;
 		if (!m)
 		{
@@ -408,7 +408,7 @@ int MQTTProtocol_handlePublishes(void* pack, SOCKET sock)
 		       For other cases, it's done in Protocol_processPublication */
 			char *temp = m->publish->payload;
 
-			if ((m->publish->payload = malloc(m->publish->payloadlen)) == NULL)
+			if ((m->publish->payload = paho_malloc_t(m->publish->payloadlen)) == NULL)
 			{
 				rc = PAHO_MEMORY_ERROR;
 				goto exit;
@@ -470,7 +470,7 @@ int MQTTProtocol_handlePubacks(void* pack, SOCKET sock, Publications** pubToRemo
 	}
 	if (puback->MQTTVersion >= MQTTVERSION_5)
 		MQTTProperties_free(&puback->properties);
-	free(pack);
+	paho_free_t(pack);
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
@@ -550,7 +550,7 @@ int MQTTProtocol_handlePubrecs(void* pack, SOCKET sock, Publications** pubToRemo
 
 	if (pubrec->MQTTVersion >= MQTTVERSION_5)
 		MQTTProperties_free(&pubrec->properties);
-	free(pack);
+	paho_free_t(pack);
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
@@ -627,7 +627,7 @@ int MQTTProtocol_handlePubrels(void* pack, SOCKET sock)
 
 	if (pubrel->MQTTVersion >= MQTTVERSION_5)
 		MQTTProperties_free(&pubrel->properties);
-	free(pack);
+	paho_free_t(pack);
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
@@ -687,7 +687,7 @@ int MQTTProtocol_handlePubcomps(void* pack, SOCKET sock, Publications** pubToRem
 	}
 	if (pubcomp->MQTTVersion >= MQTTVERSION_5)
 		MQTTProperties_free(&pubcomp->properties);
-	free(pack);
+	paho_free_t(pack);
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
@@ -877,7 +877,7 @@ int MQTTProtocol_queueAck(Clients* client, int ackType, int msgId)
 	AckRequest* ackReq = NULL;
 
 	FUNC_ENTRY;
-	ackReq = malloc(sizeof(AckRequest));
+	ackReq = paho_malloc_t(sizeof(AckRequest));
 	if (!ackReq)
 		rc = PAHO_MEMORY_ERROR;
 	else
@@ -937,51 +937,51 @@ void MQTTProtocol_freeClient(Clients* client)
 	MQTTProtocol_freeMessageList(client->inboundMsgs);
 	ListFree(client->messageQueue);
 	ListFree(client->outboundQueue);
-	free(client->clientID);
+	paho_free_t(client->clientID);
         client->clientID = NULL;
 	if (client->will)
 	{
-		free(client->will->payload);
-		free(client->will->topic);
-		free(client->will);
+		paho_free_t(client->will->payload);
+		paho_free_t(client->will->topic);
+		paho_free_t(client->will);
                 client->will = NULL;
 	}
 	if (client->username)
-		free((void*)client->username);
+		paho_free_t((void*)client->username);
 	if (client->password)
-		free((void*)client->password);
+		paho_free_t((void*)client->password);
 	if (client->httpProxy)
-		free(client->httpProxy);
+		paho_free_t(client->httpProxy);
 	if (client->httpsProxy)
-		free(client->httpsProxy);
+		paho_free_t(client->httpsProxy);
 	if (client->net.http_proxy_auth)
-		free(client->net.http_proxy_auth);
+		paho_free_t(client->net.http_proxy_auth);
 #if defined(OPENSSL)
 	if (client->net.https_proxy_auth)
-		free(client->net.https_proxy_auth);
+		paho_free_t(client->net.https_proxy_auth);
 	if (client->sslopts)
 	{
 		if (client->sslopts->trustStore)
-			free((void*)client->sslopts->trustStore);
+			paho_free_t((void*)client->sslopts->trustStore);
 		if (client->sslopts->keyStore)
-			free((void*)client->sslopts->keyStore);
+			paho_free_t((void*)client->sslopts->keyStore);
 		if (client->sslopts->privateKey)
-			free((void*)client->sslopts->privateKey);
+			paho_free_t((void*)client->sslopts->privateKey);
 		if (client->sslopts->privateKeyPassword)
-			free((void*)client->sslopts->privateKeyPassword);
+			paho_free_t((void*)client->sslopts->privateKeyPassword);
 		if (client->sslopts->enabledCipherSuites)
-			free((void*)client->sslopts->enabledCipherSuites);
+			paho_free_t((void*)client->sslopts->enabledCipherSuites);
 		if (client->sslopts->struct_version >= 2)
 		{
 			if (client->sslopts->CApath)
-				free((void*)client->sslopts->CApath);
+				paho_free_t((void*)client->sslopts->CApath);
 		}
 		if (client->sslopts->struct_version >= 5)
 		{
 			if (client->sslopts->protos)
-				free((void*)client->sslopts->protos);
+				paho_free_t((void*)client->sslopts->protos);
 		}
-		free(client->sslopts);
+		paho_free_t(client->sslopts);
 			client->sslopts = NULL;
 	}
 #endif
@@ -1105,7 +1105,7 @@ char* MQTTStrncpy(char *dest, const char *src, size_t dest_size)
 char* MQTTStrdup(const char* src)
 {
 	size_t mlen = strlen(src) + 1;
-	char* temp = malloc(mlen);
+	char* temp = paho_malloc_t(mlen);
 	if (temp)
 		MQTTStrncpy(temp, src, mlen);
 	else

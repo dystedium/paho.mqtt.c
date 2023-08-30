@@ -254,14 +254,14 @@ static struct frameData WebSocket_buildFrame(networkHandles* net, int opcode, in
 		if (*pbuf0)
 		{
 			rc.wsbuf0len = *pbuf0len + ws_header_size;
-			rc.wsbuf0 = malloc(rc.wsbuf0len);
+			rc.wsbuf0 = paho_malloc_t(rc.wsbuf0len);
 			if (rc.wsbuf0 == NULL)
 				goto exit;
 			memcpy(&rc.wsbuf0[ws_header_size], *pbuf0, *pbuf0len);
 		}
 		else
 		{
-			rc.wsbuf0 = malloc(ws_header_size);
+			rc.wsbuf0 = paho_malloc_t(ws_header_size);
 			if (rc.wsbuf0 == NULL)
 				goto exit;
 			rc.wsbuf0len = ws_header_size;
@@ -397,9 +397,9 @@ int WebSocket_connect( networkHandles *net, int ssl, const char *uri)
 	FUNC_ENTRY;
 	/* Generate UUID */
 	if (net->websocket_key == NULL)
-		net->websocket_key = malloc(25u);
+		net->websocket_key = paho_malloc_t(25u);
 	else
-		net->websocket_key = realloc(net->websocket_key, 25u);
+		net->websocket_key = paho_realloc_t(net->websocket_key, 25u);
 	if (net->websocket_key == NULL)
 	{
 		rc = PAHO_MEMORY_ERROR;
@@ -430,7 +430,7 @@ int WebSocket_connect( networkHandles *net, int ssl, const char *uri)
 		}
 		headers_buf_len++;
 
-		if ((headers_buf = malloc(headers_buf_len)) == NULL)
+		if ((headers_buf = paho_malloc_t(headers_buf_len)) == NULL)
 		{
 			rc = PAHO_MEMORY_ERROR;
 			goto exit;
@@ -474,7 +474,7 @@ int WebSocket_connect( networkHandles *net, int ssl, const char *uri)
 		if ( i == 0 && buf_len > 0 )
 		{
 			++buf_len; /* need 1 extra byte for ending '\0' */
-			if ((buf = malloc( buf_len )) == NULL)
+			if ((buf = paho_malloc_t( buf_len )) == NULL)
 			{
 				rc = PAHO_MEMORY_ERROR;
 				goto exit;
@@ -483,7 +483,7 @@ int WebSocket_connect( networkHandles *net, int ssl, const char *uri)
 	}
 
 	if (headers_buf)
-		free( headers_buf );
+		paho_free_t( headers_buf );
 
 	if ( buf )
 	{
@@ -495,12 +495,12 @@ int WebSocket_connect( networkHandles *net, int ssl, const char *uri)
 		else
 #endif
 			Socket_putdatas(net->socket, buf, buf_len, nulbufs);
-		free( buf );
+		paho_free_t( buf );
 		rc = 1;
 	}
 	else
 	{
-		free(net->websocket_key);
+		paho_free_t(net->websocket_key);
 		net->websocket_key = NULL;
 		rc = SOCKET_ERROR;
 	}
@@ -536,7 +536,7 @@ void WebSocket_close(networkHandles *net, int status_code, const char *reason)
 		if ( reason )
 			buf0len += strlen(reason);
 
-		buf0 = malloc(buf0len);
+		buf0 = paho_malloc_t(buf0len);
 		if ( !buf0 )
 			goto exit;
 
@@ -557,15 +557,15 @@ void WebSocket_close(networkHandles *net, int status_code, const char *reason)
 #endif
 			Socket_putdatas(net->socket, fd.wsbuf0, fd.wsbuf0len, nulbufs);
 
-		free(fd.wsbuf0); /* free temporary ws header */
+		paho_free_t(fd.wsbuf0); /* free temporary ws header */
 
 		/* websocket connection is now closed */
 		net->websocket = 0;
-		free( buf0 );
+		paho_free_t( buf0 );
 	}
 	if ( net->websocket_key )
 	{
-		free( net->websocket_key );
+		paho_free_t( net->websocket_key );
 		net->websocket_key = NULL;
 	}
 exit:
@@ -688,7 +688,7 @@ char *WebSocket_getdata(networkHandles *net, size_t bytes, size_t* actual_len)
 				*actual_len = frame->len - frame->pos;
 
 				if ( last_frame )
-					free( last_frame );
+					paho_free_t( last_frame );
 				last_frame = ListDetachHead(in_frames);
 			}
 			goto exit;
@@ -735,7 +735,7 @@ char *WebSocket_getdata(networkHandles *net, size_t bytes, size_t* actual_len)
 			else if (*actual_len == bytes && in_frames)
 			{
 				if ( last_frame )
-					free( last_frame );
+					paho_free_t( last_frame );
 				last_frame = ListDetachHead(in_frames);
 			}
 		}
@@ -814,7 +814,7 @@ char *WebSocket_getRawSocketData(networkHandles *net, size_t bytes, size_t* actu
 		
 		if (frame_buffer)
 		{
-			free (frame_buffer);
+			paho_free_t(frame_buffer);
 			frame_buffer = NULL;
 		}
 	}
@@ -824,7 +824,7 @@ char *WebSocket_getRawSocketData(networkHandles *net, size_t bytes, size_t* actu
 		// no buffer allocated
 		if (!frame_buffer)
 		{
-			if ((frame_buffer = (char *)malloc(*actual_len)) == NULL)
+			if ((frame_buffer = (char *)paho_malloc_t(*actual_len)) == NULL)
 			{
 				rv = NULL;
 				goto exit;
@@ -844,7 +844,7 @@ char *WebSocket_getRawSocketData(networkHandles *net, size_t bytes, size_t* actu
 		// resize buffer
 		else
 		{
-			frame_buffer = realloc(frame_buffer, frame_buffer_data_len + *actual_len);
+			frame_buffer = paho_realloc_t(frame_buffer, frame_buffer_data_len + *actual_len);
 			frame_buffer_len = frame_buffer_data_len + *actual_len;
 
 			memcpy(frame_buffer + frame_buffer_data_len, rv, *actual_len);
@@ -910,8 +910,8 @@ void WebSocket_pong(networkHandles *net, char *app_data, size_t app_data_len)
 #endif
 			Socket_putdatas(net->socket, fd.wsbuf0, fd.wsbuf0len /*header_len + app_data_len*/, appbuf);
 
-		free(fd.wsbuf0);
-		free(buf0);
+		paho_free_t(fd.wsbuf0);
+		paho_free_t(buf0);
 	}
 	FUNC_EXIT;
 }
@@ -959,7 +959,7 @@ int WebSocket_putdatas(networkHandles* net, char** buf0, size_t* buf0len, Packet
 		{
 			if (mask_data)
 				WebSocket_unmaskData(*buf0len, bufs);
-			free(wsdata.wsbuf0); /* free temporary ws header */
+			paho_free_t(wsdata.wsbuf0); /* free temporary ws header */
 		}
 	}
 	else
@@ -1159,7 +1159,7 @@ int WebSocket_receiveFrame(networkHandles *net, size_t *actual_len)
 
 				if (res == NULL)
 				{
-					if ((res = malloc( sizeof(struct ws_frame) + cur_len + len)) == NULL)
+					if ((res = paho_malloc_t( sizeof(struct ws_frame) + cur_len + len)) == NULL)
 					{
 						rc = PAHO_MEMORY_ERROR;
 						goto exit;
@@ -1167,7 +1167,7 @@ int WebSocket_receiveFrame(networkHandles *net, size_t *actual_len)
 					res->pos = 0u;
 				} else
 				{
-					if ((res = realloc( res, sizeof(struct ws_frame) + cur_len + len )) == NULL)
+					if ((res = paho_realloc_t( res, sizeof(struct ws_frame) + cur_len + len )) == NULL)
 					{
 						rc = PAHO_MEMORY_ERROR;
 						goto exit;
@@ -1195,13 +1195,13 @@ int WebSocket_receiveFrame(networkHandles *net, size_t *actual_len)
 						res->len );
 
 				/* discard message */
-				free( res );
+				paho_free_t( res );
 				res = NULL;
 			}
 			else if ( opcode == WebSocket_OP_CLOSE )
 			{
 				/* server end closed websocket connection */
-				free( res );
+				paho_free_t( res );
 				WebSocket_close( net, WebSocket_CLOSE_GOING_AWAY, NULL );
 				rc = SOCKET_ERROR; /* closes socket */
 				goto exit;
@@ -1264,7 +1264,7 @@ void WebSocket_terminate( void )
 		struct ws_frame *f = ListDetachHead( in_frames );
 		while ( f )
 		{
-			free( f );
+			paho_free_t( f );
 			f = ListDetachHead( in_frames );
 		}
 		ListFree( in_frames );
@@ -1272,13 +1272,13 @@ void WebSocket_terminate( void )
 	}
 	if ( last_frame )
 	{
-		free( last_frame );
+		paho_free_t( last_frame );
 		last_frame = NULL;
 	}
 	
 	if ( frame_buffer )
 	{
-		free( frame_buffer );
+		paho_free_t( frame_buffer );
 		frame_buffer = NULL;
 	}
 	
@@ -1418,7 +1418,7 @@ int WebSocket_upgrade( networkHandles *net )
 
 			if ( net->websocket_key )
 			{
-				free(net->websocket_key);
+				paho_free_t(net->websocket_key);
 				net->websocket_key = NULL;
 			}
 

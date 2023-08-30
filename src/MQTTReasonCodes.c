@@ -17,7 +17,6 @@
 #include "MQTTReasonCodes.h"
 
 #include "MQTTPacket.h"
-#include "Heap.h"
 #include "StackTrace.h"
 
 #include <memory.h>

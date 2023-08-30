@@ -33,10 +33,6 @@
 #include <windows.h>
 #endif
 #include "Heap.h" // for Heap_get_info
-// undefine macros from Heap.h:
-#undef malloc
-#undef realloc
-#undef free
 
 char unique[50]; // unique suffix/prefix to add to clientid/topic etc
 

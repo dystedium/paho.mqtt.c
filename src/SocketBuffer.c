@@ -80,11 +80,11 @@ int SocketBuffer_newDefQ(void)
 {
 	int rc = PAHO_MEMORY_ERROR;
 
-	def_queue = malloc(sizeof(socket_queue));
+	def_queue = paho_malloc_t(sizeof(socket_queue));
 	if (def_queue)
 	{
 		def_queue->buflen = 1000;
-		def_queue->buf = malloc(def_queue->buflen);
+		def_queue->buf = paho_malloc_t(def_queue->buflen);
 		if (def_queue->buf)
 		{
 			def_queue->socket = def_queue->index = 0;
@@ -121,8 +121,8 @@ int SocketBuffer_initialize(void)
  */
 void SocketBuffer_freeDefQ(void)
 {
-	free(def_queue->buf);
-	free(def_queue);
+	paho_free_t(def_queue->buf);
+	paho_free_t(def_queue);
         def_queue = NULL;
 }
 
@@ -137,7 +137,7 @@ void SocketBuffer_terminate(void)
 
 	FUNC_ENTRY;
 	while (ListNextElement(queues, &cur))
-		free(((socket_queue*)(cur->content))->buf);
+		paho_free_t(((socket_queue*)(cur->content))->buf);
 	ListFree(queues);
 	SocketBuffer_freeDefQ();
 	FUNC_EXIT;
@@ -154,7 +154,7 @@ void SocketBuffer_cleanup(SOCKET socket)
 	SocketBuffer_writeComplete(socket); /* clean up write buffers */
 	if (ListFindItem(queues, &socket, socketcompare))
 	{
-		free(((socket_queue*)(queues->current->content))->buf);
+		paho_free_t(((socket_queue*)(queues->current->content))->buf);
 		ListRemove(queues, queues->current->content);
 	}
 	if (def_queue->socket == socket)
@@ -192,22 +192,22 @@ char* SocketBuffer_getQueuedData(SOCKET socket, size_t bytes, size_t* actual_len
 	{
 		if (queue->datalen > 0)
 		{
-			void* newmem = malloc(bytes);
+			void* newmem = paho_malloc_t(bytes);
 			if (newmem)
 			{
 				memcpy(newmem, queue->buf, queue->datalen);
-				free(queue->buf);
+				paho_free_t(queue->buf);
 				queue->buf = newmem;
 			}
 			else
 			{
-				free(queue->buf);
+				paho_free_t(queue->buf);
 				queue->buf = NULL;
 				goto exit;
 			}
 		}
 		else
-			queue->buf = realloc(queue->buf, bytes);
+			queue->buf = paho_realloc_t(queue->buf, bytes);
 		queue->buflen = bytes;
 	}
 exit:
@@ -361,7 +361,7 @@ int SocketBuffer_pendingWrite(SOCKET socket, int count, iobuf* iovecs, int* free
 
 	FUNC_ENTRY;
 	/* store the buffers until the whole packet is written */
-	if ((pw = malloc(sizeof(pending_writes))) == NULL)
+	if ((pw = paho_malloc_t(sizeof(pending_writes))) == NULL)
 	{
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;

@@ -24,6 +24,7 @@
  */
 
 #include "Log.h"
+#include "HeapUntracked.h"
 #include "MQTTPacket.h"
 #include "MQTTProtocol.h"
 #include "MQTTProtocolClient.h"
@@ -141,7 +142,7 @@ int Log_initialize(Log_nameValue* info)
 	struct stat buf;
 #endif
 
-	if ((trace_queue = malloc(sizeof(traceEntry) * trace_settings.max_trace_entries)) == NULL)
+	if ((trace_queue = paho_malloc_u(sizeof(traceEntry) * trace_settings.max_trace_entries)) == NULL)
 		goto exit;
 	trace_queue_size = trace_settings.max_trace_entries;
 
@@ -153,17 +154,17 @@ int Log_initialize(Log_nameValue* info)
 		{
 			size_t namelen = 0;
 
-			if ((trace_destination_name = malloc(strlen(envval) + 1)) == NULL)
+			if ((trace_destination_name = paho_malloc_u(strlen(envval) + 1)) == NULL)
 			{
-				free(trace_queue);
+				paho_free_u(trace_queue);
 				goto exit;
 			}
 			strcpy(trace_destination_name, envval);
 			namelen = strlen(envval) + 3;
-			if ((trace_destination_backup_name = malloc(namelen)) == NULL)
+			if ((trace_destination_backup_name = paho_malloc_u(namelen)) == NULL)
 			{
-				free(trace_queue);
-				free(trace_destination_name);
+				paho_free_u(trace_queue);
+				paho_free_u(trace_destination_name);
 				goto exit;
 			}
 			if (snprintf(trace_destination_backup_name, namelen, "%s.0", trace_destination_name) >= namelen)
@@ -239,7 +240,7 @@ void Log_setTraceLevel(enum LOG_LEVELS level)
 
 void Log_terminate(void)
 {
-	free(trace_queue);
+	paho_free_u(trace_queue);
 	trace_queue = NULL;
 	trace_queue_size = 0;
 	if (trace_destination)
@@ -249,11 +250,11 @@ void Log_terminate(void)
 		trace_destination = NULL;
 	}
 	if (trace_destination_name) {
-		free(trace_destination_name);
+		paho_free_u(trace_destination_name);
 		trace_destination_name = NULL;
 	}
 	if (trace_destination_backup_name) {
-		free(trace_destination_backup_name);
+		paho_free_u(trace_destination_backup_name);
 		trace_destination_backup_name = NULL;
 	}
 	start_index = -1;
@@ -285,12 +286,12 @@ static traceEntry* Log_pretrace(void)
 
 	if (trace_queue_size != trace_settings.max_trace_entries)
 	{
-		traceEntry* new_trace_queue = malloc(sizeof(traceEntry) * trace_settings.max_trace_entries);
+		traceEntry* new_trace_queue = paho_malloc_u(sizeof(traceEntry) * trace_settings.max_trace_entries);
 
 		if (new_trace_queue == NULL)
 			goto exit;
 		memcpy(new_trace_queue, trace_queue, min(trace_queue_size, trace_settings.max_trace_entries) * sizeof(traceEntry));
-		free(trace_queue);
+		paho_free_u(trace_queue);
 		trace_queue = new_trace_queue;
 		trace_queue_size = trace_settings.max_trace_entries;
 

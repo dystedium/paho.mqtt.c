@@ -154,7 +154,7 @@ void* MQTTPacket_Factory(int MQTTVersion, networkHandles* net, int* error)
 			else if (header.bits.type == PUBLISH && header.bits.qos == 2)
 			{
 				int buf0len;
-				char *buf = malloc(10);
+				char *buf = paho_malloc_t(10);
 
 				if (buf == NULL)
 				{
@@ -165,7 +165,7 @@ void* MQTTPacket_Factory(int MQTTVersion, networkHandles* net, int* error)
 				buf0len = 1 + MQTTPacket_encode(&buf[1], remaining_length);
 				*error = MQTTPersistence_putPacket(net->socket, buf, buf0len, 1,
 					&data, &remaining_length, header.bits.type, ((Publish *)pack)->msgId, 1, MQTTVersion);
-				free(buf);
+				paho_free_t(buf);
 			}
 #endif
 		}
@@ -200,7 +200,7 @@ int MQTTPacket_send(networkHandles* net, Header header, char* buffer, size_t buf
 
 	FUNC_ENTRY;
 	buf0len = 1 + MQTTPacket_encode(NULL, buflen);
-	buf = malloc(buf0len);
+	buf = paho_malloc_t(buf0len);
 	if (buf == NULL)
 	{
 		rc = SOCKET_ERROR;
@@ -230,7 +230,7 @@ int MQTTPacket_send(networkHandles* net, Header header, char* buffer, size_t buf
 		net->lastSent = MQTTTime_now();
 	
 	if (rc != TCPSOCKET_INTERRUPTED)
-	  free(buf);
+	  paho_free_t(buf);
 
 exit:
 	FUNC_EXIT_RC(rc);
@@ -260,7 +260,7 @@ int MQTTPacket_sends(networkHandles* net, Header header, PacketBuffers* bufs, in
 	for (i = 0; i < bufs->count; i++)
 		total += bufs->buflens[i];
 	buf0len = 1 + MQTTPacket_encode(NULL, total);
-	buf = malloc(buf0len);
+	buf = paho_malloc_t(buf0len);
 	if (buf == NULL)
 	{
 		rc = SOCKET_ERROR;
@@ -284,7 +284,7 @@ int MQTTPacket_sends(networkHandles* net, Header header, PacketBuffers* bufs, in
 		net->lastSent = MQTTTime_now();
 	
 	if (rc != TCPSOCKET_INTERRUPTED)
-	  free(buf);
+	  paho_free_t(buf);
 exit:
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -390,7 +390,7 @@ static char* readUTFlen(char** pptr, char* enddata, int* len)
 		*len = readInt(pptr);
 		if (&(*pptr)[*len] <= enddata)
 		{
-			if ((string = malloc(*len+1)) == NULL)
+			if ((string = paho_malloc_t(*len+1)) == NULL)
 				goto exit;
 			memcpy(string, *pptr, *len);
 			string[*len] = '\0';
@@ -523,7 +523,7 @@ int MQTTPacket_send_disconnect(Clients* client, enum MQTTReasonCodes reason, MQT
 		char *buf = NULL;
 		char *ptr = NULL;
 
-		if ((buf = malloc(buflen)) == NULL)
+		if ((buf = paho_malloc_t(buflen)) == NULL)
 		{
 			rc = SOCKET_ERROR;
 			goto exit;
@@ -534,7 +534,7 @@ int MQTTPacket_send_disconnect(Clients* client, enum MQTTReasonCodes reason, MQT
 			MQTTProperties_write(&ptr, props);
 		if ((rc = MQTTPacket_send(&client->net, header, buf, buflen, 1,
 				                   client->MQTTVersion)) != TCPSOCKET_INTERRUPTED)
-			free(buf);
+			paho_free_t(buf);
 	}
 	else
 		rc = MQTTPacket_send(&client->net, header, NULL, 0, 0, client->MQTTVersion);
@@ -560,14 +560,14 @@ void* MQTTPacket_publish(int MQTTVersion, unsigned char aHeader, char* data, siz
 	char* enddata = &data[datalen];
 
 	FUNC_ENTRY;
-	if ((pack = malloc(sizeof(Publish))) == NULL)
+	if ((pack = paho_malloc_t(sizeof(Publish))) == NULL)
 		goto exit;
 	memset(pack, '\0', sizeof(Publish));
 	pack->MQTTVersion = MQTTVersion;
 	pack->header.byte = aHeader;
 	if ((pack->topic = readUTFlen(&curdata, enddata, &pack->topiclen)) == NULL) /* Topic name on which to publish */
 	{
-		free(pack);
+		paho_free_t(pack);
 		pack = NULL;
 		goto exit;
 	}
@@ -575,7 +575,7 @@ void* MQTTPacket_publish(int MQTTVersion, unsigned char aHeader, char* data, siz
 	{
 		if (enddata - curdata < 2)  /* Is there enough data for the msgid? */
 		{
-			free(pack);
+			paho_free_t(pack);
 			pack = NULL;
 			goto exit;
 		}
@@ -590,9 +590,9 @@ void* MQTTPacket_publish(int MQTTVersion, unsigned char aHeader, char* data, siz
 		if (MQTTProperties_read(&pack->properties, &curdata, enddata) != 1)
 		{
 			if (pack->properties.array)
-				free(pack->properties.array);
+				paho_free_t(pack->properties.array);
 			if (pack)
-				free(pack);
+				paho_free_t(pack);
 			pack = NULL; /* signal protocol error */
 			goto exit;
 		}
@@ -613,10 +613,10 @@ void MQTTPacket_freePublish(Publish* pack)
 {
 	FUNC_ENTRY;
 	if (pack->topic != NULL)
-		free(pack->topic);
+		paho_free_t(pack->topic);
 	if (pack->MQTTVersion >= MQTTVERSION_5)
 		MQTTProperties_free(&pack->properties);
-	free(pack);
+	paho_free_t(pack);
 	FUNC_EXIT;
 }
 
@@ -630,7 +630,7 @@ void MQTTPacket_freeAck(Ack* pack)
 	FUNC_ENTRY;
 	if (pack->MQTTVersion >= MQTTVERSION_5)
 		MQTTProperties_free(&pack->properties);
-	free(pack);
+	paho_free_t(pack);
 	FUNC_EXIT;
 }
 
@@ -652,7 +652,7 @@ static int MQTTPacket_send_ack(int MQTTVersion, int type, int msgid, int dup, ne
 	char *ptr = NULL;
 
 	FUNC_ENTRY;
-	if ((ptr = buf = malloc(2)) == NULL)
+	if ((ptr = buf = paho_malloc_t(2)) == NULL)
 		goto exit;
 	header.byte = 0;
 	header.bits.type = type;
@@ -661,7 +661,7 @@ static int MQTTPacket_send_ack(int MQTTVersion, int type, int msgid, int dup, ne
 	    header.bits.qos = 1;
 	writeInt(&ptr, msgid);
 	if ((rc = MQTTPacket_send(net, header, buf, 2, 1, MQTTVersion)) != TCPSOCKET_INTERRUPTED)
-		free(buf);
+		paho_free_t(buf);
 exit:
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -699,7 +699,7 @@ void MQTTPacket_freeSuback(Suback* pack)
 		MQTTProperties_free(&pack->properties);
 	if (pack->qoss != NULL)
 		ListFree(pack->qoss);
-	free(pack);
+	paho_free_t(pack);
 	FUNC_EXIT;
 }
 
@@ -717,7 +717,7 @@ void MQTTPacket_freeUnsuback(Unsuback* pack)
 		if (pack->reasonCodes != NULL)
 			ListFree(pack->reasonCodes);
 	}
-	free(pack);
+	paho_free_t(pack);
 	FUNC_EXIT;
 }
 
@@ -798,7 +798,7 @@ void* MQTTPacket_ack(int MQTTVersion, unsigned char aHeader, char* data, size_t 
 	char* enddata = &data[datalen];
 
 	FUNC_ENTRY;
-	if ((pack = malloc(sizeof(Ack))) == NULL)
+	if ((pack = paho_malloc_t(sizeof(Ack))) == NULL)
 		goto exit;
 	pack->MQTTVersion = MQTTVersion;
 	pack->header.byte = aHeader;
@@ -806,7 +806,7 @@ void* MQTTPacket_ack(int MQTTVersion, unsigned char aHeader, char* data, size_t 
 	{
 		if (enddata - curdata < 2)  /* Is there enough data for the msgid? */
 		{
-			free(pack);
+			paho_free_t(pack);
 			pack = NULL;
 			goto exit;
 		}
@@ -828,9 +828,9 @@ void* MQTTPacket_ack(int MQTTVersion, unsigned char aHeader, char* data, size_t 
 			if (MQTTProperties_read(&pack->properties, &curdata, enddata) != 1)
 			{
 				if (pack->properties.array)
-					free(pack->properties.array);
+					paho_free_t(pack->properties.array);
 				if (pack)
-					free(pack);
+					paho_free_t(pack);
 				pack = NULL; /* signal protocol error */
 				goto exit;
 			}
@@ -859,7 +859,7 @@ int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, netwo
 	int rc = SOCKET_ERROR;
 
 	FUNC_ENTRY;
-	topiclen = malloc(2);
+	topiclen = paho_malloc_t(2);
 	if (topiclen == NULL)
 		goto exit;
 
@@ -876,7 +876,7 @@ int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, netwo
 		int frees[4] = {1, 0, 1, 0};
 		PacketBuffers packetbufs = {4, bufs, lens, frees, {pack->mask[0], pack->mask[1], pack->mask[2], pack->mask[3]}};
 
-		bufs[2] = ptr = malloc(buflen);
+		bufs[2] = ptr = paho_malloc_t(buflen);
 		if (ptr == NULL)
 			goto exit_free;
 		if (qos > 0)
@@ -888,7 +888,7 @@ int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, netwo
 		writeInt(&ptr, (int)lens[1]);
 		rc = MQTTPacket_sends(net, header, &packetbufs, pack->MQTTVersion);
 		if (rc != TCPSOCKET_INTERRUPTED)
-			free(bufs[2]);
+			paho_free_t(bufs[2]);
 		memcpy(pack->mask, packetbufs.mask, sizeof(pack->mask));
 	}
 	else
@@ -911,7 +911,7 @@ int MQTTPacket_send_publish(Publish* pack, int dup, int qos, int retained, netwo
 				min(20, pack->payloadlen), pack->payload);
 exit_free:
 	if (rc != TCPSOCKET_INTERRUPTED)
-		free(topiclen);
+		paho_free_t(topiclen);
 exit:
 	FUNC_EXIT_RC(rc);
 	return rc;
@@ -932,7 +932,7 @@ void MQTTPacket_free_packet(MQTTPacket* pack)
 	else if (pack->header.type == UNSUBSCRIBE)
 		MQTTPacket_freeUnsubscribe((Unsubscribe*)pack);*/
 	else
-		free(pack);
+		paho_free_t(pack);
 	FUNC_EXIT;
 }
 

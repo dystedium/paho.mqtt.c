@@ -25,36 +25,132 @@
 
 #define PAHO_MEMORY_ERROR -99
 
+#include "HeapUntracked.h"
 #include "MQTTExportDeclarations.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 
 #if !defined(NO_HEAP_TRACKING)
 
-#if !defined(TREE_C)
+#if !defined(paho_malloc_t)
 /**
- * redefines malloc to use "mymalloc" so that heap allocation can be tracked
+ * call malloc with internal heap tracking; when NO_HEAP_TRACKING is defined,
+ * this is equivalent to paho_malloc_u
  * @param x the size of the item to be allocated
  * @return the pointer to the item allocated, or NULL
  */
-#define malloc(x) mymalloc(__FILE__, __LINE__, x)
+#define paho_malloc_t(x) malloc_tracked(__FILE__, __LINE__, x)
+#endif
 
+#if !defined(paho_realloc_t)
 /**
- * redefines realloc to use "myrealloc" so that heap allocation can be tracked
+ * call realloc with internal heap tracking; when NO_HEAP_TRACKING is defined,
+ * this is equivalent to paho_realloc_u
  * @param a the heap item to be reallocated
  * @param b the new size of the item
  * @return the new pointer to the heap item
  */
-#define realloc(a, b) myrealloc(__FILE__, __LINE__, a, b)
+#define paho_realloc_t(a, b) realloc_tracked(__FILE__, __LINE__, a, b)
+#endif
 
+#if !defined(paho_free_t)
 /**
- * redefines free to use "myfree" so that heap allocation can be tracked
+ * call free with internal heap tracking; when NO_HEAP_TRACKING is defined,
+ * this is equivalent to paho_free_u
  * @param x the pointer to the item to be freed
  */
-#define free(x) myfree(__FILE__, __LINE__, x)
+#define paho_free_t(x) free_tracked(__FILE__, __LINE__, x)
+#endif
+
+/**
+ * conditionally call malloc with or without internal heap tracking; when
+ * NO_HEAP_TRACKING is defined, this is equivalent to paho_malloc_u
+ * @param c enable internal heap tracking when nonzero
+ * @param x the size of the item to be allocated
+ * @return the pointer to the item allocated, or NULL
+ */
+#define paho_malloc_c(c, x) ((c) ? paho_malloc_t(x) : paho_malloc_u(x))
+
+/**
+ * conditionally call realloc with or without internal heap tracking; when
+ * NO_HEAP_TRACKING is defined, this is equivalent to paho_realloc_u
+ * @param c enable internal heap tracking when nonzero
+ * @param a the heap item to be reallocated
+ * @param b the new size of the item
+ * @return the new pointer to the heap item
+ */
+#define paho_realloc_c(c, a, b) ((c) ? paho_realloc_t(a, b) : paho_realloc_u(a, b))
+
+/**
+ * conditionally call free with or without internal heap tracking; when
+ * NO_HEAP_TRACKING is defined, this is equivalent to paho_free_u
+ * @param c enable internal heap tracking when nonzero
+ * @param x the pointer to the item to be freed
+ */
+#define paho_free_c(c, x) ((c) ? paho_free_t(x) : paho_free_u(x))
+
+#else
+
+#if !defined(paho_malloc_t)
+/**
+ * call malloc with internal heap tracking; when NO_HEAP_TRACKING is defined,
+ * this is equivalent to paho_malloc_u
+ * @param x the size of the item to be allocated
+ * @return the pointer to the item allocated, or NULL
+ */
+#define paho_malloc_t(x) paho_malloc_u(x)
+#endif
+
+#if !defined(paho_realloc_t)
+/**
+ * call realloc with internal heap tracking; when NO_HEAP_TRACKING is defined,
+ * this is equivalent to paho_realloc_u
+ * @param a the heap item to be reallocated
+ * @param b the new size of the item
+ * @return the new pointer to the heap item
+ */
+#define paho_realloc_t(a, b) paho_realloc_u(a, b)
+#endif
+
+#if !defined(paho_free_t)
+/**
+ * call free with internal heap tracking; when NO_HEAP_TRACKING is defined,
+ * this is equivalent to paho_free_u
+ * @param x the pointer to the item to be freed
+ */
+#define paho_free_t(x) paho_free_u(x)
+#endif
+
+/**
+ * conditionally call malloc with or without internal heap tracking; when
+ * NO_HEAP_TRACKING is defined, this is equivalent to paho_malloc_u
+ * @param c enable internal heap tracking when nonzero
+ * @param x the size of the item to be allocated
+ * @return the pointer to the item allocated, or NULL
+ */
+#define paho_malloc_c(c, x) paho_malloc_u(x)
+
+/**
+ * conditionally call realloc with or without internal heap tracking; when
+ * NO_HEAP_TRACKING is defined, this is equivalent to paho_realloc_u
+ * @param c enable internal heap tracking when nonzero
+ * @param a the heap item to be reallocated
+ * @param b the new size of the item
+ * @return the new pointer to the heap item
+ */
+#define paho_realloc_c(c, a, b) paho_realloc_u(a, b)
+
+/**
+ * conditionally call free with or without internal heap tracking; when
+ * NO_HEAP_TRACKING is defined, this is equivalent to paho_free_u
+ * @param c enable internal heap tracking when nonzero
+ * @param x the pointer to the item to be freed
+ */
+#define paho_free_c(c, x) paho_free_u(x)
 
 #endif
+
+#if !defined(NO_HEAP_TRACKING)
 
 /**
  * Information about the state of the heap.
@@ -69,9 +165,9 @@ typedef struct
  extern "C" {
 #endif
 
-void* mymalloc(char*, int, size_t size);
-void* myrealloc(char*, int, void* p, size_t size);
-void myfree(char*, int, void* p);
+void* malloc_tracked(char*, int, size_t size);
+void* realloc_tracked(char*, int, void* p, size_t size);
+void free_tracked(char*, int, void* p);
 
 void Heap_scan(FILE* file);
 int Heap_initialize(void);

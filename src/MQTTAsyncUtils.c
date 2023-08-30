@@ -267,8 +267,8 @@ static int MQTTAsync_persistCommand(MQTTAsync_queuedCommand* qcmd)
 			nbufs = ((aclient->c->MQTTVersion >= MQTTVERSION_5) ? 4 : 3) +
 				(command->details.sub.count * multiplier);
 
-			if (((lens = (int*)malloc(nbufs * sizeof(int))) == NULL) ||
-					((bufs = malloc(nbufs * sizeof(char *))) == NULL))
+			if (((lens = (int*)paho_malloc_t(nbufs * sizeof(int))) == NULL) ||
+					((bufs = paho_malloc_t(nbufs * sizeof(char *))) == NULL))
 			{
 				rc = PAHO_MEMORY_ERROR;
 				goto exit;
@@ -309,8 +309,8 @@ static int MQTTAsync_persistCommand(MQTTAsync_queuedCommand* qcmd)
 			nbufs = ((aclient->c->MQTTVersion >= MQTTVERSION_5) ? 4 : 3) +
 					command->details.unsub.count;
 
-			if (((lens = (int*)malloc(nbufs * sizeof(int))) == NULL) ||
-					((bufs = malloc(nbufs * sizeof(char *))) == NULL))
+			if (((lens = (int*)paho_malloc_t(nbufs * sizeof(int))) == NULL) ||
+					((bufs = paho_malloc_t(nbufs * sizeof(char *))) == NULL))
 			{
 				rc = PAHO_MEMORY_ERROR;
 				goto exit;
@@ -335,8 +335,8 @@ static int MQTTAsync_persistCommand(MQTTAsync_queuedCommand* qcmd)
 		case PUBLISH:
 			nbufs = (aclient->c->MQTTVersion >= MQTTVERSION_5) ? 8 : 7;
 
-			if (((lens = (int*)malloc(nbufs * sizeof(int))) == NULL) ||
-					((bufs = malloc(nbufs * sizeof(char *))) == NULL))
+			if (((lens = (int*)paho_malloc_t(nbufs * sizeof(int))) == NULL) ||
+					((bufs = paho_malloc_t(nbufs * sizeof(char *))) == NULL))
 			{
 				rc = PAHO_MEMORY_ERROR;
 				goto exit;
@@ -382,7 +382,7 @@ static int MQTTAsync_persistCommand(MQTTAsync_queuedCommand* qcmd)
 		char* ptr = NULL;
 
 		temp_len = MQTTProperties_len(&command->properties);
-		if ((ptr = bufs[bufindex] = malloc(temp_len)) == NULL)
+		if ((ptr = bufs[bufindex] = paho_malloc_t(temp_len)) == NULL)
 		{
 			rc = PAHO_MEMORY_ERROR;
 			goto exit;
@@ -411,11 +411,11 @@ static int MQTTAsync_persistCommand(MQTTAsync_queuedCommand* qcmd)
 	}
 exit:
 	if (props_allocated > 0)
-		free(bufs[props_allocated]);
+		paho_free_t(bufs[props_allocated]);
 	if (lens)
-		free(lens);
+		paho_free_t(lens);
 	if (bufs)
-		free(bufs);
+		paho_free_t(bufs);
 	FUNC_EXIT_RC(rc);
 	return rc;
 }
@@ -438,7 +438,7 @@ static MQTTAsync_queuedCommand* MQTTAsync_restoreCommand(char* buffer, int bufle
 
 	if (qcommand == NULL)
 	{
-		if ((qcommand = malloc(sizeof(MQTTAsync_queuedCommand))) == NULL)
+		if ((qcommand = paho_malloc_t(sizeof(MQTTAsync_queuedCommand))) == NULL)
 			goto exit;
 		memset(qcommand, '\0', sizeof(MQTTAsync_queuedCommand));
 		qcommand->not_restored = 1; /* don't restore all the command on the first call */
@@ -467,16 +467,16 @@ static MQTTAsync_queuedCommand* MQTTAsync_restoreCommand(char* buffer, int bufle
 
 			if (command->details.sub.count > 0)
 			{
-				if ((command->details.sub.topics = (char **)malloc(sizeof(char *) * command->details.sub.count)) == NULL)
+				if ((command->details.sub.topics = (char **)paho_malloc_t(sizeof(char *) * command->details.sub.count)) == NULL)
 					goto error_exit;
-				if ((command->details.sub.qoss = (int *)malloc(sizeof(int) * command->details.sub.count)) == NULL)
+				if ((command->details.sub.qoss = (int *)paho_malloc_t(sizeof(int) * command->details.sub.count)) == NULL)
 					goto error_exit;
 
 				if ((MQTTVersion >= MQTTVERSION_5))
 				{
 					if (command->details.sub.count > 1)
 					{
-						command->details.sub.optlist = (MQTTSubscribe_options*)malloc(sizeof(MQTTSubscribe_options) * command->details.sub.count);
+						command->details.sub.optlist = (MQTTSubscribe_options*)paho_malloc_t(sizeof(MQTTSubscribe_options) * command->details.sub.count);
 						if (command->details.sub.optlist == NULL)
 							goto error_exit;
 					}
@@ -489,7 +489,7 @@ static MQTTAsync_queuedCommand* MQTTAsync_restoreCommand(char* buffer, int bufle
 				if (data_size == endpos - ptr)
 					goto error_exit; /* no null found */
 
-				if ((command->details.sub.topics[i] = malloc(data_size)) == NULL)
+				if ((command->details.sub.topics[i] = paho_malloc_t(data_size)) == NULL)
 					goto error_exit;
 				strcpy(command->details.sub.topics[i], ptr);
 				ptr += data_size;
@@ -528,7 +528,7 @@ static MQTTAsync_queuedCommand* MQTTAsync_restoreCommand(char* buffer, int bufle
 
 			if (command->details.unsub.count > 0)
 			{
-				command->details.unsub.topics = (char **)malloc(sizeof(char *) * command->details.unsub.count);
+				command->details.unsub.topics = (char **)paho_malloc_t(sizeof(char *) * command->details.unsub.count);
 				if (command->details.unsub.topics == NULL)
 					goto error_exit;
 			}
@@ -539,7 +539,7 @@ static MQTTAsync_queuedCommand* MQTTAsync_restoreCommand(char* buffer, int bufle
 				if (data_size == endpos - ptr)
 					goto error_exit; /* no null found */
 
-				if ((command->details.unsub.topics[i] = malloc(data_size)) == NULL)
+				if ((command->details.unsub.topics[i] = paho_malloc_t(data_size)) == NULL)
 					goto error_exit;
 				strcpy(command->details.unsub.topics[i], ptr);
 				ptr += data_size;
@@ -553,7 +553,7 @@ static MQTTAsync_queuedCommand* MQTTAsync_restoreCommand(char* buffer, int bufle
 
 			if (qcommand->not_restored == 0)
 			{
-				if ((command->details.pub.destinationName = malloc(data_size)) == NULL)
+				if ((command->details.pub.destinationName = paho_malloc_t(data_size)) == NULL)
 					goto error_exit;
 				strcpy(command->details.pub.destinationName, ptr);
 			}
@@ -569,7 +569,7 @@ static MQTTAsync_queuedCommand* MQTTAsync_restoreCommand(char* buffer, int bufle
 				goto error_exit;
 			if (qcommand->not_restored == 0)
 			{
-				if ((command->details.pub.payload = malloc(data_size)) == NULL)
+				if ((command->details.pub.payload = paho_malloc_t(data_size)) == NULL)
 					goto error_exit;
 				memcpy(command->details.pub.payload, ptr, data_size);
 			}
@@ -592,12 +592,12 @@ static MQTTAsync_queuedCommand* MQTTAsync_restoreCommand(char* buffer, int bufle
 			MQTTProperties_read(&command->properties, &ptr, buffer + buflen) != 1)
 	{
 			Log(LOG_ERROR, -1, "Error restoring properties from persistence");
-			free(qcommand);
+			paho_free_t(qcommand);
 			qcommand = NULL;
 	}
 	goto exit;
 error_exit:
-	free(qcommand);
+	paho_free_t(qcommand);
 	qcommand = NULL;
 exit:
 	FUNC_EXIT;
@@ -655,7 +655,7 @@ int MQTTAsync_restoreCommands(MQTTAsyncs* client)
 					/* As the entire command is not restored on the first read to save memory, we temporarily store
 					 * the filename of the persisted command to be used when restoreCommand is called the second time.
 					 */
-					cmd->key = malloc(strlen(msgkeys[i])+1);
+					cmd->key = paho_malloc_t(strlen(msgkeys[i])+1);
 					strcpy(cmd->key, msgkeys[i]);
 
 					cmd->client = client;
@@ -669,13 +669,13 @@ int MQTTAsync_restoreCommands(MQTTAsyncs* client)
 				}
 			}
 			if (buffer)
-				free(buffer);
+				paho_free_t(buffer);
 			if (msgkeys[i])
-				free(msgkeys[i]);
+				paho_free_t(msgkeys[i]);
 			i++;
 		}
 		if (msgkeys != NULL)
-			free(msgkeys);
+			paho_free_t(msgkeys);
 	}
 	Log(TRACE_MINIMUM, -1, "%d commands restored for client %s", commands_restored, c->clientID);
 	FUNC_EXIT_RC(rc);
@@ -707,11 +707,11 @@ int MQTTAsync_unpersistCommandsAndMessages(Clients* c)
 					Log(LOG_ERROR, 0, "Error %d removing queued message from persistence", rc);
 			}
 			if (msgkeys[i])
-				free(msgkeys[i]);
+				paho_free_t(msgkeys[i]);
 			i++;
 		}
 		if (msgkeys != NULL)
-			free(msgkeys);
+			paho_free_t(msgkeys);
 	}
 	Log(TRACE_MINIMUM, -1, "%d queued messages deleted for client %s", messages_deleted, c->clientID);
 	FUNC_EXIT_RC(rc);
@@ -745,11 +745,11 @@ static int MQTTAsync_unpersistInflightMessages(Clients* c)
 					Log(LOG_ERROR, 0, "Error %d removing inflight message from persistence", rc);
 			}
 			if (msgkeys[i])
-				free(msgkeys[i]);
+				paho_free_t(msgkeys[i]);
 			i++;
 		}
 		if (msgkeys != NULL)
-			free(msgkeys);
+			paho_free_t(msgkeys);
 	}
 	Log(TRACE_MINIMUM, -1, "%d inflight messages deleted for client %s", messages_deleted, c->clientID);
 	FUNC_EXIT_RC(rc);
@@ -854,12 +854,12 @@ int MQTTAsync_addCommand(MQTTAsync_queuedCommand* command, int command_size)
 						Log(LOG_ERROR, 0, "Error writing %d chars with snprintf", chars);
 						goto exit;
 					}
-					command->key = malloc(strlen(key)+1);
+					command->key = paho_malloc_t(strlen(key)+1);
 					strcpy(command->key, key);
 
-					free(command->command.details.pub.payload);
+					paho_free_t(command->command.details.pub.payload);
 					command->command.details.pub.payload = NULL;
-					free(command->command.details.pub.destinationName);
+					paho_free_t(command->command.details.pub.destinationName);
 					command->command.details.pub.destinationName = NULL;
 					MQTTProperties_free(&command->command.properties);
 				}
@@ -1021,11 +1021,11 @@ static void MQTTAsync_freeCommand1(MQTTAsync_queuedCommand *command)
 		int i;
 
 		for (i = 0; i < command->command.details.sub.count; i++)
-			free(command->command.details.sub.topics[i]);
+			paho_free_t(command->command.details.sub.topics[i]);
 
-		free(command->command.details.sub.topics);
+		paho_free_t(command->command.details.sub.topics);
 		command->command.details.sub.topics = NULL;
-		free(command->command.details.sub.qoss);
+		paho_free_t(command->command.details.sub.qoss);
 		command->command.details.sub.qoss = NULL;
 	}
 	else if (command->command.type == UNSUBSCRIBE)
@@ -1033,31 +1033,31 @@ static void MQTTAsync_freeCommand1(MQTTAsync_queuedCommand *command)
 		int i;
 
 		for (i = 0; i < command->command.details.unsub.count; i++)
-			free(command->command.details.unsub.topics[i]);
+			paho_free_t(command->command.details.unsub.topics[i]);
 
-		free(command->command.details.unsub.topics);
+		paho_free_t(command->command.details.unsub.topics);
 		command->command.details.unsub.topics = NULL;
 	}
 	else if (command->command.type == PUBLISH)
 	{
 		/* qos 1 and 2 topics are freed in the protocol code when the flows are completed */
 		if (command->command.details.pub.destinationName)
-			free(command->command.details.pub.destinationName);
+			paho_free_t(command->command.details.pub.destinationName);
 		command->command.details.pub.destinationName = NULL;
 		if (command->command.details.pub.payload)
-			free(command->command.details.pub.payload);
+			paho_free_t(command->command.details.pub.payload);
 		command->command.details.pub.payload = NULL;
 	}
 	MQTTProperties_free(&command->command.properties);
 	if (command->not_restored && command->key)
-		free(command->key);
+		paho_free_t(command->key);
 }
 
 
 static void MQTTAsync_freeCommand(MQTTAsync_queuedCommand *command)
 {
 	MQTTAsync_freeCommand1(command);
-	free(command);
+	paho_free_t(command);
 }
 
 
@@ -1257,14 +1257,14 @@ static int MQTTAsync_processCommand(void)
 				{
 					int MQTTVersion = (strncmp(command->key, PERSISTENCE_V5_COMMAND_KEY, strlen(PERSISTENCE_V5_COMMAND_KEY)) == 0)
 									? MQTTVERSION_5 : MQTTVERSION_3_1_1;
-					free(command->key);
+					paho_free_t(command->key);
 					command->key = NULL;
 					command = MQTTAsync_restoreCommand(buffer, buflen, MQTTVersion, command);
 				}
 				else
 					Log(LOG_ERROR, -1, "Error restoring command: rc %d from pget\n", rc);
 				if (buffer)
-					free(buffer);
+					paho_free_t(buffer);
 			}
 			MQTTAsync_unpersistCommand(command);
 		}
@@ -1384,7 +1384,7 @@ static int MQTTAsync_processCommand(void)
 		ListFreeNoContent(topics);
 		ListFreeNoContent(qoss);
 		if (command->client->c->MQTTVersion >= MQTTVERSION_5 && command->command.details.sub.count > 1)
-			free(command->command.details.sub.optlist);
+			paho_free_t(command->command.details.sub.optlist);
 	}
 	else if (command->command.type == UNSUBSCRIBE)
 	{
@@ -1407,7 +1407,7 @@ static int MQTTAsync_processCommand(void)
 		Publish* p = NULL;
 		MQTTProperties initialized = MQTTProperties_initializer;
 
-		if ((p = malloc(sizeof(Publish))) == NULL)
+		if ((p = paho_malloc_t(sizeof(Publish))) == NULL)
 		{
 			rc = PAHO_MEMORY_ERROR;
 			goto exit;
@@ -1469,7 +1469,7 @@ static int MQTTAsync_processCommand(void)
 				command->client->pending_write = &command->command;
 			}
 		}
-		free(p); /* should this be done if the write isn't complete? */
+		paho_free_t(p); /* should this be done if the write isn't complete? */
 	}
 	else if (command->command.type == DISCONNECT)
 	{
@@ -1615,7 +1615,7 @@ static void nextOrClose(MQTTAsyncs* m, int rc, char* message)
 			connectionLost_called = 1;
 		}
 		/* put the connect command back to the head of the command queue, using the next serverURI */
-		if ((conn = malloc(sizeof(MQTTAsync_queuedCommand))) == NULL)
+		if ((conn = paho_malloc_t(sizeof(MQTTAsync_queuedCommand))) == NULL)
 			goto exit;
 		memset(conn, '\0', sizeof(MQTTAsync_queuedCommand));
 		conn->client = m;
@@ -1716,7 +1716,7 @@ static void MQTTAsync_checkTimeouts(void)
 			if (m->reconnectNow || MQTTTime_elapsed(m->lastConnectionFailedTime) > (ELAPSED_TIME_TYPE)(m->currentInterval * 1000))
 			{
 				/* to reconnect put the connect command to the head of the command queue */
-				MQTTAsync_queuedCommand* conn = malloc(sizeof(MQTTAsync_queuedCommand));
+				MQTTAsync_queuedCommand* conn = paho_malloc_t(sizeof(MQTTAsync_queuedCommand));
 				if (!conn)
 					goto exit;
 				memset(conn, '\0', sizeof(MQTTAsync_queuedCommand));
@@ -1741,7 +1741,7 @@ static void MQTTAsync_checkTimeouts(void)
 						if (connectData.username != m->c->username)
 						{
 							if (m->c->username)
-								free((void*)m->c->username);
+								paho_free_t((void*)m->c->username);
 							if (connectData.username)
 								m->c->username = connectData.username; /* must be allocated by MQTTAsync_malloc in the callback */
 							else
@@ -1750,7 +1750,7 @@ static void MQTTAsync_checkTimeouts(void)
 						if (connectData.binarypwd.data != m->c->password)
 						{
 							if (m->c->password)
-								free((void*)m->c->password);
+								paho_free_t((void*)m->c->password);
 							if (connectData.binarypwd.data)
 							{
 								m->c->passwordlen = connectData.binarypwd.len;
@@ -1835,9 +1835,9 @@ void MQTTAsync_emptyMessageQueue(Clients* client)
 		while (ListNextElement(client->messageQueue, &current))
 		{
 			qEntry* qe = (qEntry*)(current->content);
-			free(qe->topicName);
-			free(qe->msg->payload);
-			free(qe->msg);
+			paho_free_t(qe->topicName);
+			paho_free_t(qe->msg->payload);
+			paho_free_t(qe->msg);
 		}
 		ListEmpty(client->messageQueue);
 	}
@@ -2183,7 +2183,7 @@ thread_return_type WINAPI MQTTAsync_receiveThread(void* n)
 									if (sub->qoss->count > 1)
 									{
 										ListElement* cur_qos = NULL;
-										enum MQTTReasonCodes* element = array = data.alt.sub.reasonCodes = malloc(sub->qoss->count * sizeof(enum MQTTReasonCodes));
+										enum MQTTReasonCodes* element = array = data.alt.sub.reasonCodes = paho_malloc_t(sub->qoss->count * sizeof(enum MQTTReasonCodes));
 										if (array)
 											while (ListNextElement(sub->qoss, &cur_qos))
 												*element++ = *(int*)(cur_qos->content);
@@ -2193,7 +2193,7 @@ thread_return_type WINAPI MQTTAsync_receiveThread(void* n)
 									Log(TRACE_MIN, -1, "Calling subscribe success for client %s", m->c->clientID);
 									(*(command->command.onSuccess5))(command->command.context, &data);
 									if (array)
-										free(array);
+										paho_free_t(array);
 								}
 							}
 							else if (sub->qoss->count == 1 && *(int*)(sub->qoss->first->content) == MQTT_BAD_SUBSCRIBE)
@@ -2219,7 +2219,7 @@ thread_return_type WINAPI MQTTAsync_receiveThread(void* n)
 								else if (sub->qoss->count > 1)
 								{
 									ListElement* cur_qos = NULL;
-									int* element = array = data.alt.qosList = malloc(sub->qoss->count * sizeof(int));
+									int* element = array = data.alt.qosList = paho_malloc_t(sub->qoss->count * sizeof(int));
 									if (array)
 										while (ListNextElement(sub->qoss, &cur_qos))
 											*element++ = *(int*)(cur_qos->content);
@@ -2228,7 +2228,7 @@ thread_return_type WINAPI MQTTAsync_receiveThread(void* n)
 								Log(TRACE_MIN, -1, "Calling subscribe success for client %s", m->c->clientID);
 								(*(command->command.onSuccess))(command->command.context, &data);
 								if (array)
-									free(array);
+									paho_free_t(array);
 							}
 							MQTTAsync_freeCommand(command);
 							break;
@@ -2270,7 +2270,7 @@ thread_return_type WINAPI MQTTAsync_receiveThread(void* n)
 									if (unsub->reasonCodes->count > 1)
 									{
 										ListElement* cur_rc = NULL;
-										enum MQTTReasonCodes* element = array = data.alt.unsub.reasonCodes = malloc(unsub->reasonCodes->count * sizeof(enum MQTTReasonCodes));
+										enum MQTTReasonCodes* element = array = data.alt.unsub.reasonCodes = paho_malloc_t(unsub->reasonCodes->count * sizeof(enum MQTTReasonCodes));
 										if (array)
 											while (ListNextElement(unsub->reasonCodes, &cur_rc))
 												*element++ = *(enum MQTTReasonCodes*)(cur_rc->content);
@@ -2280,7 +2280,7 @@ thread_return_type WINAPI MQTTAsync_receiveThread(void* n)
 									Log(TRACE_MIN, -1, "Calling unsubscribe success for client %s", m->c->clientID);
 									(*(command->command.onSuccess5))(command->command.context, &data);
 									if (array)
-										free(array);
+										paho_free_t(array);
 								}
 							}
 							MQTTAsync_freeCommand(command);
@@ -2547,15 +2547,15 @@ void Protocol_processPublication(Publish* publish, Clients* client, int allocate
 	int rc = 0;
 
 	FUNC_ENTRY;
-	if ((mm = malloc(sizeof(MQTTAsync_message))) == NULL)
+	if ((mm = paho_malloc_t(sizeof(MQTTAsync_message))) == NULL)
 		goto exit;
 	memcpy(mm, &initialized, sizeof(MQTTAsync_message));
 
 	if (allocatePayload)
 	{
-		if ((mm->payload = malloc(publish->payloadlen)) == NULL)
+		if ((mm->payload = paho_malloc_t(publish->payloadlen)) == NULL)
 		{
-			free(mm);
+			paho_free_t(mm);
 			goto exit;
 		}
 		memcpy(mm->payload, publish->payload, publish->payloadlen);
@@ -2593,7 +2593,7 @@ void Protocol_processPublication(Publish* publish, Clients* client, int allocate
 
 	if (rc == 0) /* if message was not delivered, queue it up */
 	{
-		qEntry* qe = malloc(sizeof(qEntry));
+		qEntry* qe = paho_malloc_t(sizeof(qEntry));
 
 		if (!qe)
 			goto exit;
@@ -2646,7 +2646,7 @@ int MQTTAsync_disconnect1(MQTTAsync handle, const MQTTAsync_disconnectOptions* o
 	}
 
 	/* Add disconnect request to operation queue */
-	if ((dis = malloc(sizeof(MQTTAsync_queuedCommand))) == NULL)
+	if ((dis = paho_malloc_t(sizeof(MQTTAsync_queuedCommand))) == NULL)
 	{
 		rc = PAHO_MEMORY_ERROR;
 		goto exit;

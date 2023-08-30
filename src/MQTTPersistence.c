@@ -61,14 +61,14 @@ int MQTTPersistence_create(MQTTClient_persistence** persistence, int type, void*
 			per = NULL;
 			break;
 		case MQTTCLIENT_PERSISTENCE_DEFAULT :
-			per = malloc(sizeof(MQTTClient_persistence));
+			per = paho_malloc_t(sizeof(MQTTClient_persistence));
 			if ( per != NULL )
 			{
 				if ( pcontext == NULL )
 					pcontext = "."; /* working directory */
-				if ((per->context = malloc(strlen(pcontext) + 1)) == NULL)
+				if ((per->context = paho_malloc_t(strlen(pcontext) + 1)) == NULL)
 				{
-					free(per);
+					paho_free_t(per);
 					rc = PAHO_MEMORY_ERROR;
 					goto exit;
 				}
@@ -146,8 +146,8 @@ int MQTTPersistence_close(Clients *c)
 
 		if (c->persistence->popen == pstopen) {
 			if (c->persistence->context)
-				free(c->persistence->context);
-			free(c->persistence);
+				paho_free_t(c->persistence->context);
+			paho_free_t(c->persistence);
 		}
 
 		c->phandle = NULL;
@@ -254,8 +254,8 @@ int MQTTPersistence_restorePackets(Clients *c)
 						ListAppend(c->inboundMsgs, msg, msg->len);
 						if (c->MQTTVersion >= MQTTVERSION_5)
 						{
-							free(msg->publish->payload);
-							free(msg->publish->topic);
+							paho_free_t(msg->publish->payload);
+							paho_free_t(msg->publish->topic);
 							msg->publish->payload = msg->publish->topic = NULL;
 						}
 						publish->topic = NULL;
@@ -268,7 +268,7 @@ int MQTTPersistence_restorePackets(Clients *c)
 						Publish* publish = (Publish*)pack;
 						Messages* msg = NULL;
 						const size_t keysize = PERSISTENCE_MAX_KEY_LENGTH + 1;
-						char *key = malloc(keysize);
+						char *key = paho_malloc_t(keysize);
 						int chars = 0;
 
 						if (!key)
@@ -300,14 +300,14 @@ int MQTTPersistence_restorePackets(Clients *c)
 							MQTTPacket_freePublish(publish);
 							msgs_sent++;
 						}
-						free(key);
+						paho_free_t(key);
 					}
 					else if (strncmp(cur_key, PERSISTENCE_PUBREL, strlen(PERSISTENCE_PUBREL)) == 0)
 					{
 						/* orphaned PUBRELs ? */
 						Pubrel* pubrel = (Pubrel*)pack;
 						const size_t keysize = PERSISTENCE_MAX_KEY_LENGTH + 1;
-						char *key = malloc(keysize);
+						char *key = paho_malloc_t(keysize);
 						int chars = 0;
 
 						if (!key)
@@ -327,8 +327,8 @@ int MQTTPersistence_restorePackets(Clients *c)
 						}
 						else if (c->persistence->pcontainskey(c->phandle, key) != 0)
 							rc = c->persistence->premove(c->phandle, msgkeys[i]);
-						free(pubrel);
-						free(key);
+						paho_free_t(pubrel);
+						paho_free_t(key);
 					}
 				}
 				else  /* pack == NULL -> bad persisted record */
@@ -336,15 +336,15 @@ int MQTTPersistence_restorePackets(Clients *c)
 			}
 			if (buffer)
 			{
-				free(buffer);
+				paho_free_t(buffer);
 				buffer = NULL;
 			}
 			if (msgkeys[i])
-				free(msgkeys[i]);
+				paho_free_t(msgkeys[i]);
 			i++;
 		}
 		if (msgkeys)
-			free(msgkeys);
+			paho_free_t(msgkeys);
 	}
 	Log(TRACE_MINIMUM, -1, "%d sent messages and %d received messages restored for client %s\n", 
 		msgs_sent, msgs_rcvd, c->clientID);
@@ -447,22 +447,22 @@ int MQTTPersistence_putPacket(SOCKET socket, char* buf0, size_t buf0len, int cou
 	if (client->persistence != NULL)
 	{
 		const size_t keysize = PERSISTENCE_MAX_KEY_LENGTH + 1;
-		if ((key = malloc(keysize)) == NULL)
+		if ((key = paho_malloc_t(keysize)) == NULL)
 		{
 			rc = PAHO_MEMORY_ERROR;
 			goto exit;
 		}
 		nbufs = 1 + count;
-		if ((lens = (int *)malloc(nbufs * sizeof(int))) == NULL)
+		if ((lens = (int *)paho_malloc_t(nbufs * sizeof(int))) == NULL)
 		{
-			free(key);
+			paho_free_t(key);
 			rc = PAHO_MEMORY_ERROR;
 			goto exit;
 		}
-		if ((bufs = (char **)malloc(nbufs * sizeof(char *))) == NULL)
+		if ((bufs = (char **)paho_malloc_t(nbufs * sizeof(char *))) == NULL)
 		{
-			free(key);
-			free(lens);
+			paho_free_t(key);
+			paho_free_t(lens);
 			rc = PAHO_MEMORY_ERROR;
 			goto exit;
 		}
@@ -510,9 +510,9 @@ int MQTTPersistence_putPacket(SOCKET socket, char* buf0, size_t buf0len, int cou
 		if (rc == 0)
 			rc = client->persistence->pput(client->phandle, key, nbufs, bufs, lens);
 
-		free(key);
-		free(lens);
-		free(bufs);
+		paho_free_t(key);
+		paho_free_t(lens);
+		paho_free_t(bufs);
 	}
 
 exit:
@@ -538,7 +538,7 @@ int MQTTPersistence_remove(Clients* c, char *type, int qos, int msgId)
 	if (c->persistence != NULL)
 	{
 		const size_t keysize = PERSISTENCE_MAX_KEY_LENGTH + 1;
-		char *key = malloc(keysize);
+		char *key = paho_malloc_t(keysize);
 		int chars = 0;
 
 		if (!key)
@@ -588,7 +588,7 @@ int MQTTPersistence_remove(Clients* c, char *type, int qos, int msgId)
 		}
 		if (rc == MQTTCLIENT_PERSISTENCE_ERROR)
 			Log(LOG_ERROR, 0, "Error writing %d chars with snprintf", chars);
-		free(key);
+		paho_free_t(key);
 	}
 
 exit:
@@ -724,7 +724,7 @@ int MQTTPersistence_persistQueueEntry(Clients* aclient, MQTTPersistence_qEntry* 
 			props = &qe->msg->properties;
 
 		temp_len = MQTTProperties_len(props);
-		ptr = bufs[bufindex] = malloc(temp_len);
+		ptr = bufs[bufindex] = paho_malloc_t(temp_len);
 		if (!ptr)
 		{
 			rc = PAHO_MEMORY_ERROR;
@@ -752,7 +752,7 @@ int MQTTPersistence_persistQueueEntry(Clients* aclient, MQTTPersistence_qEntry* 
 			Log(LOG_ERROR, 0, "Error persisting queue entry, rc %d", rc);
 	}
 	if (props_allocated != 0)
-		free(bufs[props_allocated]);
+		paho_free_t(bufs[props_allocated]);
 
 exit:
 	FUNC_EXIT_RC(rc);
@@ -767,13 +767,13 @@ static MQTTPersistence_qEntry* MQTTPersistence_restoreQueueEntry(char* buffer, s
 	int data_size;
 	
 	FUNC_ENTRY;
-	if ((qe = malloc(sizeof(MQTTPersistence_qEntry))) == NULL)
+	if ((qe = paho_malloc_t(sizeof(MQTTPersistence_qEntry))) == NULL)
 		goto exit;
 	memset(qe, '\0', sizeof(MQTTPersistence_qEntry));
 	
-	if ((qe->msg = malloc(sizeof(MQTTPersistence_message))) == NULL)
+	if ((qe->msg = paho_malloc_t(sizeof(MQTTPersistence_message))) == NULL)
 	{
-		free(qe);
+		paho_free_t(qe);
 		qe = NULL;
 		goto exit;
 	}
@@ -785,10 +785,10 @@ static MQTTPersistence_qEntry* MQTTPersistence_restoreQueueEntry(char* buffer, s
 	ptr += sizeof(int);
 	
 	data_size = qe->msg->payloadlen;
-	if ((qe->msg->payload = malloc(data_size)) == NULL)
+	if ((qe->msg->payload = paho_malloc_t(data_size)) == NULL)
 	{
-		free(qe->msg);
-		free(qe);
+		paho_free_t(qe->msg);
+		paho_free_t(qe);
 		qe = NULL;
 		goto exit;
 	}
@@ -808,11 +808,11 @@ static MQTTPersistence_qEntry* MQTTPersistence_restoreQueueEntry(char* buffer, s
 	ptr += sizeof(int);
 	
 	data_size = (int)strlen(ptr) + 1;	
-	if ((qe->topicName = malloc(data_size)) == NULL)
+	if ((qe->topicName = paho_malloc_t(data_size)) == NULL)
 	{
-		free(qe->msg->payload);
-		free(qe->msg);
-		free(qe);
+		paho_free_t(qe->msg->payload);
+		paho_free_t(qe->msg);
+		paho_free_t(qe);
 		qe = NULL;
 		goto exit;
 	}
@@ -890,16 +890,16 @@ int MQTTPersistence_restoreMessageQueue(Clients* c)
 					entries_restored++;
 				}
 				if (buffer)
-					free(buffer);
+					paho_free_t(buffer);
 			}
 			if (msgkeys[i])
 			{
-				free(msgkeys[i]);
+				paho_free_t(msgkeys[i]);
 			}
 			i++;
 		}
 		if (msgkeys != NULL)
-			free(msgkeys);
+			paho_free_t(msgkeys);
 	}
 	Log(TRACE_MINIMUM, -1, "%d queued messages restored for client %s", entries_restored, c->clientID);
 	FUNC_EXIT_RC(rc);

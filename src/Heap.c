@@ -157,7 +157,7 @@ static void Heap_check(char* string, void* ptr)
  * @param size the size of the item to be allocated
  * @return pointer to the allocated item, or NULL if there was an error
  */
-void* mymalloc(char* file, int line, size_t size)
+void* malloc_tracked(char* file, int line, size_t size)
 {
 	storageElement* s = NULL;
 	size_t space = sizeof(storageElement);
@@ -276,7 +276,7 @@ static int Internal_heap_unlink(char* file, int line, void* p)
  * @param line use the __LINE__ macro to indicate which line this item was allocated at
  * @param p pointer to the item to be freed
  */
-void myfree(char* file, int line, void* p)
+void free_tracked(char* file, int line, void* p)
 {
 	if (p) /* it is legal und usual to call free(NULL) */
 	{
@@ -319,7 +319,7 @@ void Heap_unlink(char* file, int line, void* p)
  * @param size the new size of the item
  * @return pointer to the allocated item, or NULL if there was an error
  */
-void *myrealloc(char* file, int line, void* p, size_t size)
+void *realloc_tracked(char* file, int line, void* p, size_t size)
 {
 	void* rc = NULL;
 	storageElement* s = NULL;
@@ -496,27 +496,23 @@ char* Broker_recordFFDC(char* symptoms)
 	return "";
 }
 
-#define malloc(x) mymalloc(__FILE__, __LINE__, x)
-#define realloc(a, b) myrealloc(__FILE__, __LINE__, a, b)
-#define free(x) myfree(__FILE__, __LINE__, x)
-
 int main(int argc, char *argv[])
 {
 	char* h = NULL;
 	Heap_initialize();
 
-	h = malloc(12);
-	free(h);
+	h = paho_malloc_t(12);
+	paho_free_t(h);
 	printf("freed h\n");
 
-	h = malloc(12);
-	h = realloc(h, 14);
-	h = realloc(h, 25);
-	h = realloc(h, 255);
-	h = realloc(h, 2225);
-	h = realloc(h, 22225);
-    printf("freeing h\n");
-	free(h);
+	h = paho_malloc_t(12);
+	h = paho_realloc_t(h, 14);
+	h = paho_realloc_t(h, 25);
+	h = paho_realloc_t(h, 255);
+	h = paho_realloc_t(h, 2225);
+	h = paho_realloc_t(h, 22225);
+	printf("freeing h\n");
+	paho_free_t(h);
 	Heap_terminate();
 	printf("Finishing\n");
 	return 0;

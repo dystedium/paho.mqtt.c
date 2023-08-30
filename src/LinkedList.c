@@ -51,7 +51,7 @@ void ListZero(List* newl)
  */
 List* ListInitialize(void)
 {
-	List* newl = malloc(sizeof(List));
+	List* newl = paho_malloc_t(sizeof(List));
 	if (newl)
 		ListZero(newl);
 	return newl;
@@ -89,7 +89,7 @@ void ListAppendNoMalloc(List* aList, void* content, ListElement* newel, size_t s
  */
 ListElement* ListAppend(List* aList, void* content, size_t size)
 {
-	ListElement* newel = malloc(sizeof(ListElement));
+	ListElement* newel = paho_malloc_t(sizeof(ListElement));
 	if (newel)
 		ListAppendNoMalloc(aList, content, newel, size);
 	return newel;
@@ -106,7 +106,7 @@ ListElement* ListAppend(List* aList, void* content, size_t size)
  */
 ListElement* ListInsert(List* aList, void* content, size_t size, ListElement* index)
 {
-	ListElement* newel = malloc(sizeof(ListElement));
+	ListElement* newel = paho_malloc_t(sizeof(ListElement));
 
 	if (newel == NULL)
 		return newel;
@@ -221,12 +221,12 @@ static int ListUnlink(List* aList, void* content, int(*callback)(void*, void*), 
 	next = aList->current->next;
 	if (freeContent)
     {
-		free(aList->current->content);
+		paho_free_t(aList->current->content);
                 aList->current->content = NULL;
     }
 	if (saved == aList->current)
 		saveddeleted = 1;
-	free(aList->current);
+	paho_free_t(aList->current);
 	if (saveddeleted)
 		aList->current = next;
 	else
@@ -279,7 +279,7 @@ void* ListDetachHead(List* aList)
 		aList->first = aList->first->next;
 		if (aList->first)
 			aList->first->prev = NULL;
-		free(first);
+		paho_free_t(first);
 		--(aList->count);
 	}
 	return content;
@@ -293,7 +293,7 @@ void* ListDetachHead(List* aList)
  */
 int ListRemoveHead(List* aList)
 {
-	free(ListDetachHead(aList));
+	paho_free_t(ListDetachHead(aList));
 	return 0;
 }
 
@@ -317,7 +317,7 @@ void* ListPopTail(List* aList)
 		aList->last = aList->last->prev;
 		if (aList->last)
 			aList->last->next = NULL;
-		free(last);
+		paho_free_t(last);
 		--(aList->count);
 	}
 	return content;
@@ -363,11 +363,11 @@ void ListEmpty(List* aList)
 		ListElement* first = aList->first;
 		if (first->content != NULL)
                 {
-			free(first->content);
+			paho_free_t(first->content);
                         first->content = NULL;
                 }
 		aList->first = first->next;
-		free(first);
+		paho_free_t(first);
 	}
 	aList->count = 0;
 	aList->size = 0;
@@ -381,7 +381,7 @@ void ListEmpty(List* aList)
 void ListFree(List* aList)
 {
 	ListEmpty(aList);
-	free(aList);
+	paho_free_t(aList);
 }
 
 
@@ -395,9 +395,9 @@ void ListFreeNoContent(List* aList)
 	{
 		ListElement* first = aList->first;
 		aList->first = first->next;
-		free(first);
+		paho_free_t(first);
 	}
-	free(aList);
+	paho_free_t(aList);
 }
 
 
@@ -463,7 +463,7 @@ int main(int argc, char *argv[])
 
 	for (i = 0; i < 10; i++)
 	{
-		ip = malloc(sizeof(int));
+		ip = paho_malloc_t(sizeof(int));
 		*ip = i;
 		ListAppend(l, (void*)ip, sizeof(int));
 		if (i==5)

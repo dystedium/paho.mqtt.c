@@ -28,8 +28,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "Heap.h"
-
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 #define max_msg_len 120
